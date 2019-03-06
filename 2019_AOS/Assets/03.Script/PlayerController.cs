@@ -4,12 +4,6 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-public enum FightType
-{
-    Knight,
-    Archer,
-    Mage
-}
 
 public class PlayerController : MonoBehaviour {
     #region Singleton
@@ -28,6 +22,8 @@ public class PlayerController : MonoBehaviour {
 
     private CharacterController _controller;
     Animator _playerAnimator;
+    public PlayerStats _playerStats { get; private set; }
+    GrassDetect _grassDetect;
 
     #region Movement
     private bool _isMoving = false;
@@ -48,7 +44,6 @@ public class PlayerController : MonoBehaviour {
     
     public bool _isReadyToFire { get; set; }
 
-    bool _dash;
     #endregion
 
     #region Shooting
@@ -57,24 +52,17 @@ public class PlayerController : MonoBehaviour {
     Quaternion _fireRot;
 
     public GameObject _muzzleEffect;
-    LineRenderer _shotIndicator;
-    Coroutine _LineRenderingRoutine;
+    public LineRenderer _shotIndicator { get; private set; }
+    Coroutine _lineRenderingRoutine;
+
+    public Vector3 _attackStickDir { get; set; }
+
+    public Material _attackIncatorMat;
+    public Material _skillIncatorMat;
+
+    bool isActivatingSkill;
     #endregion
 
-    public PlayerStats _playerStats { get; set; }
-
-    GrassDetect _grassDetect;
-    //bool _isAttacking;
-    //private int _attack;
-    //private bool canChain;
-    //public FightType fightType;
-
-    //Coroutine chainLockMovementRoutine;
-    //Coroutine chainBrokeChain;
-
-    //private bool[] _skill_Able = new bool[3];
-    //private bool _all_skill_able;
-    //private bool _isSkillActivate = false;
 
     // Use this for initialization
     void Start () {
@@ -92,24 +80,16 @@ public class PlayerController : MonoBehaviour {
         _left_touch_id = -1;
         _right_touch_id = -1;
 
-        _dash = false;
-
         _shotIndicator = GetComponent<LineRenderer>();
         _shotIndicator.enabled = false;
+        _attackIncatorMat = Resources.Load<Material>("Materials/Indicator_Attack_Mat");
+        _skillIncatorMat = Resources.Load<Material>("Materials/Indicator_Skill_Mat");
+        isActivatingSkill = false;
 
         _playerStats = GetComponent<PlayerStats>();
         _grassDetect = GetComponentInChildren<GrassDetect>();
-        //_grassDetect.enabled = false;
-        //_isAttacking = false;
-        //_attack = 0;
-        //canChain = false;
-        //fightType = FightType.Knight;
 
-        //_skill_Able[0] = true;
-        //_skill_Able[1] = true;
-        //_skill_Able[2] = true;
-        //_all_skill_able = true;
-
+        _attackStickDir = Vector3.zero;
     }
 
 	// Update is called once per frame
@@ -118,10 +98,9 @@ public class PlayerController : MonoBehaviour {
         {           
             if (touch.phase == TouchPhase.Began)
             {
-                if (EventSystem.current.IsPointerOverGameObject(touch.fingerId))
-                {
+                if (EventSystem.current.IsPointerOverGameObject(touch.fingerId))                
                     continue;
-                }
+                
                 Vector2 pos = touch.position;
                 pos.x = (pos.x - _width) / _width;
                 pos.y = (pos.y - _height) / _height;
@@ -135,17 +114,19 @@ public class PlayerController : MonoBehaviour {
                     _isMoving = true;
 
                     InGameMainUI.instance.MovementStick.StartControlling(touch.fingerId);
-
                 }
                 else
                 {
-                    if (_right_touch_id >= 0) continue;
+                    
+                    if (_right_touch_id >= 0 ||
+                        SkillCanvas.instance._innerCircle.GetComponent<SkillAttack>()._isControlling ||
+                        isActivatingSkill)
+                        continue;
 
                     _right_touch_id = touch.fingerId;
                     _attackStartPos = new Vector2(pos.x, pos.y);
 
-                    InGameMainUI.instance.AttackStick.StartControlling(touch.fingerId);
-                }
+                    InGameMainUI.instance.AttackStick.StartControlling(touch.fingerId);                }
             }
             if (touch.phase == TouchPhase.Moved ||
                 touch.phase == TouchPhase.Stationary &&
@@ -182,9 +163,6 @@ public class PlayerController : MonoBehaviour {
                 Vector3 vertical = new Vector3(0, 0, 1);
 
                 Vector3 moveDir = (horizontal * dragDir.x + vertical * dragDir.y).normalized;
-                //Vector3 moveDir = dragDir.normalized;
-
-
 
                 if (touch.fingerId == _left_touch_id)
                 {
@@ -192,42 +170,48 @@ public class PlayerController : MonoBehaviour {
                     {
                         _playerAnimator.SetBool("isMoving", true);
                         _playerAnimator.SetFloat("MoveSpeed", dragAmount);
-                        transform.rotation = Quaternion.LookRotation(moveDir);
-                    }
-                    else
-                    {
-                        dragDir = Vector2.zero;
+                        if(!isActivatingSkill)
+                            transform.rotation = Quaternion.LookRotation(moveDir);
+                        _controller.Move(moveDir * Time.deltaTime * _speed * dragAmount);
                     }
 
-                    if (!_dash)
-                    {
-                        _controller.Move(moveDir * Time.deltaTime * _speed * dragAmount);
-                        _playerAnimator.SetBool("Rolling", false);
-                    }
-                }else if(touch.fingerId == _right_touch_id)
+                }
+                else if(touch.fingerId == _right_touch_id)
                 {
-                    _shotIndicator.enabled = true;
-                    _LineRenderingRoutine = StartCoroutine(DrawIndicatorLine());
-                    //_shotIndicator.SetPosition(1, transform.position);
-                    //Debug.Log(dragDir);
-                    //_shotIndicator.SetPosition(1, 
-                    //    transform.position + new Vector3(dragDir.x, 0, dragDir.y).normalized * _playerStats._bulletRange);
+                    if (_isReadyToFire && !_shotIndicator.enabled)
+                    {
+                        _shotIndicator.enabled = true;
+                        _lineRenderingRoutine = StartCoroutine(DrawAttackIndicator());
+                    }
+                    else if(!_isReadyToFire && _shotIndicator.enabled)
+                    {
+                        if (_lineRenderingRoutine == null)
+                            continue;                        
+
+                        StopCoroutine(_lineRenderingRoutine);
+                        _shotIndicator.enabled = false;
+                    }
                 }
             }
             else if (touch.phase == TouchPhase.Ended)
             {
                 if (touch.fingerId == _left_touch_id && _left_touch_id >= 0)
                 {
+                    _playerAnimator.SetBool("isMoving", false);
+                    _playerAnimator.SetFloat("MoveSpeed", 0);
                     InGameMainUI.instance.MovementStick.StopControlling();
                     _left_touch_id = -1;
                 }
                 else if (touch.fingerId == _right_touch_id && _right_touch_id >= 0)
                 {
-                    StopCoroutine(_LineRenderingRoutine);
-                    _shotIndicator.enabled = false;
-
                     if (_isReadyToFire)
+                    {
+                        StopCoroutine(_lineRenderingRoutine);
+                        _shotIndicator.enabled = false;
                         FireBasicAttack();
+
+                        _attackStickDir = Vector3.zero;
+                    }
 
                     _isReadyToFire = false;
                     InGameMainUI.instance.AttackStick.StopControlling();
@@ -240,20 +224,17 @@ public class PlayerController : MonoBehaviour {
             _isMoving = false;
             _playerAnimator.SetBool("isMoving", false);
             _playerAnimator.SetFloat("MoveSpeed", 0);
-            if (!_dash)
-            {
-                _playerAnimator.SetBool("Rolling", false);
-            }
             _movingStartPos = Vector3.zero;
             _movingCurrentPos = Vector3.zero;
         }
     }
 
-    void FireBasicAttack()
+    public  void FireBasicAttack()
     {
         if (!GetComponent<PlayerStats>().onFire()) return;
 
-        Vector3 fireDir = new Vector3(InGameMainUI.instance.AttackStick.stickDir.x, 0 , InGameMainUI.instance.AttackStick.stickDir.y);
+        Vector3 fireDir = new Vector3(_attackStickDir.x, 0, _attackStickDir.y);
+
         transform.rotation = Quaternion.LookRotation(fireDir);
 
         GameObject muzzle = Instantiate(_muzzleEffect, 
@@ -265,9 +246,77 @@ public class PlayerController : MonoBehaviour {
             _firePos.transform.position,
             _firePos.transform.rotation);
         projectile.GetComponent<Projectile>().TheStart(_playerStats._bulletVelocity,
-            _playerStats._damage, _playerStats._bulletRange, gameObject);
-        //projectile.SetActive(true);
+            _playerStats._damage, _playerStats._bulletRange, false,  gameObject);
 
+    }
+
+    public void FireSkillAttack()
+    {
+        _playerStats.InitializeSkillGage();
+
+        switch (_playerStats._fightType)
+        {
+            case FightType.Barley:
+                break;
+            case FightType.Colt:
+                StartCoroutine(ActivateColtSkill());
+                break;
+            case FightType.Nita:
+                break;
+            case FightType.Shelly:
+                break;
+        }
+    }
+
+    IEnumerator ActivateColtSkill()
+    {
+        int shotCount = 0;
+        isActivatingSkill = true;
+
+        Vector3 fireDir = new Vector3(_attackStickDir.x, 0, _attackStickDir.y);
+        transform.rotation = Quaternion.LookRotation(fireDir);
+
+        while (shotCount < 4)
+        {
+            GameObject muzzle = Instantiate(_muzzleEffect,
+                  _firePos.transform.position,
+                  _firePos.transform.rotation);
+            StartCoroutine(DestroyMuzzle(muzzle, 0.4f));
+
+            GameObject projectile = GameObject.Instantiate(_attackProjectile,                   
+                _firePos.transform.position,                    
+                _firePos.transform.rotation);
+            projectile.GetComponent<Projectile>().TheStart(
+                _playerStats._bulletVelocity,
+                _playerStats._damage
+                , _playerStats._bulletRange
+                , true
+                , gameObject);
+
+            shotCount++;
+            yield return new WaitForSeconds(0.2f);
+        }
+
+        isActivatingSkill = false;
+    }
+
+    public IEnumerator DrawSkillIndicator()
+    {
+        Vector3 fireDir;
+        Vector3 endPoint;
+        _shotIndicator.material = _skillIncatorMat;
+
+        while (true)
+        {
+            fireDir = new Vector3(_attackStickDir.x, 0, _attackStickDir.y);
+
+            endPoint = transform.position + fireDir.normalized * _playerStats._skillRange;
+            endPoint.y = 1;
+
+            _shotIndicator.SetPosition(0, transform.position + new Vector3(0, 1, 0));
+            _shotIndicator.SetPosition(1, endPoint);
+            yield return null;
+        }
     }
 
     IEnumerator DestroyMuzzle(GameObject muzzle, float destroyTime)
@@ -289,39 +338,25 @@ public class PlayerController : MonoBehaviour {
         Destroy(muzzle);
     }
 
-    IEnumerator DrawIndicatorLine()
+    IEnumerator DrawAttackIndicator()
     {
         Vector3 fireDir;
         Vector3 endPoint;
+        _shotIndicator.material = _attackIncatorMat;
+
         while (true)
         {
-            fireDir = new Vector3(InGameMainUI.instance.AttackStick.stickDir.x, 0, InGameMainUI.instance.AttackStick.stickDir.y);
+            fireDir = new Vector3(_attackStickDir.x, 0, _attackStickDir.y);
             RaycastHit hit;
-            if (Physics.Raycast(transform.position, fireDir, out hit, _playerStats._bulletRange, LayerMask.NameToLayer("Grass") ))
-            {
-                endPoint = hit.point;
-            }
-            else
-            {
+            if (Physics.Raycast(transform.position, fireDir, out hit, _playerStats._bulletRange, LayerMask.NameToLayer("Grass") ))            
+                endPoint = hit.point;            
+            else            
                 endPoint = transform.position + fireDir.normalized * _playerStats._bulletRange;
-
-            }
-
+            
             endPoint.y = 1; 
             _shotIndicator.SetPosition(0, transform.position + new Vector3(0,1,0));
-            //Debug.Log(dragDir);
             _shotIndicator.SetPosition(1, endPoint);
-
-
             yield return null;
         }
     }
-
-    //private void OnTriggerEnter(Collider other)
-    //{
-    //    if (other.CompareTag("Grass"))
-    //    {
-
-    //    }
-    //}
 }

@@ -3,38 +3,75 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
+
 public class PlayerStats : MonoBehaviour {
     public GameObject _playerInfoCanvas;
 
-    public Vector3 _offset;
-    public Vector3 _rot;
-    public string _name;
-    public int _health;
-    public int _damage;
-    public float _bulletVelocity;
-    public float _bulletRange;
-    public int _ammo;
-    public float _reloadTime;
+    Vector3 _offset;
+    Vector3 _rot;
 
-    public int _specialAttackEnergyLimit;
-    int _specialAttackEnergy;
+    public CharacterInfo _characterInfo;
+
+    #region Character Information
+    public FightType _fightType { get; private set;}
+    public int _health { get; private set; }
+    public int _damage { get; private set; }
+    public float _bulletVelocity { get; private set; }
+    public float _bulletRange { get; private set; }
+    public int _ammo { get; private set; }
+    public float _reloadTime { get; private set; }
+
+    public int _skillEnergyLimit { get; private set; }
+    public float _skillRange { get; private set; }
+    public float _skillDamage { get; private set; }
+    #endregion
+
+    #region OnGame Information
+    public string _name;
 
     int _score;
     int _currentAmmo;
     bool _reload;
     float _currentReloadAmount;
+    public bool _skillFireReady { get; private set; }
+    int _skillEnergy;
+    #endregion
 
+    #region PlayerInfo Canvas
     GameObject _healthBar;
     GameObject _healthTxt;
     GameObject _ammoBar;
     GameObject _reloadBar;
     GameObject _ID;
+    #endregion
 
+    #region Skill UI
+    Sprite _skillBG_Before;
+    Sprite _skillBG_After;
+    Sprite _skillImg_Before;
+    Sprite _skillImg_After;
+    #endregion
     // Use this for initialization
     void Start () {
         _offset = new Vector3(0, 3.5f, 0.6f);
         _rot = new Vector3(68, 0, 0);
 
+        #region CharacterInformation Setting
+        _fightType = _characterInfo._fightType;
+        _health = _characterInfo._health;
+        _damage = _characterInfo._damage;
+        _bulletVelocity = _characterInfo._bulletVelocity;
+        _bulletRange = _characterInfo._bulletRange;
+        _ammo = _characterInfo._ammo;
+        _reloadTime = _characterInfo._reloadTime;
+
+        _skillEnergyLimit = _characterInfo._skillEnergyLimit;
+        _skillRange = _characterInfo._skillRange;
+        _skillDamage = _characterInfo._skillDamage;
+
+       #endregion
+
+        #region PlayerInfo Canvas Setting
         _playerInfoCanvas = Instantiate(_playerInfoCanvas);
         _playerInfoCanvas.GetComponent<RectTransform>().position =
     transform.position + _offset;
@@ -45,12 +82,18 @@ public class PlayerStats : MonoBehaviour {
         _ammoBar = _playerInfoCanvas.GetComponent<PlayerUI>().ammoBar;
         _reloadBar  = _playerInfoCanvas.GetComponent<PlayerUI>().reloadBar;
         _ID = _playerInfoCanvas.GetComponent<PlayerUI>().ID;
+        #endregion
 
         _reload = false;
         _currentAmmo = _ammo;
         _currentReloadAmount = 1f;
+        _skillEnergy = 0;
+        _skillFireReady = false;
 
-        _specialAttackEnergy = 0;
+        _skillBG_Before = Resources.Load<Sprite>("Sprites/Skill_BG_Before"); ;
+        _skillBG_After = Resources.Load<Sprite>("Sprites/Skill_BG_After") ;
+        _skillImg_Before = Resources.Load<Sprite>("Sprites/Skill_Img_Before") ;
+        _skillImg_After = Resources.Load<Sprite>("Sprites/Skill_Img_After") ;
     }
 
     // Update is called once per frame
@@ -108,11 +151,33 @@ public class PlayerStats : MonoBehaviour {
 
     public void HitCompetition(GameObject gameObject)
     {
-        Debug.Log("HitCompetition in PlayerStats");
-        _specialAttackEnergy += _damage;
-        SpecialAttack.instance._gage.GetComponent<Image>().fillAmount = 
-            (float)_specialAttackEnergy / _specialAttackEnergyLimit;
+        _skillEnergy += _damage;
+        if(_skillEnergy >= _skillEnergyLimit)
+        {
+            SkillCanvas.instance._gage.GetComponent<Image>().enabled = false ;
+            SkillCanvas.instance._outterCircle.GetComponent<Image>().sprite =
+                _skillBG_After;
+            SkillCanvas.instance._innerCircle.GetComponent<Image>().sprite =
+                _skillImg_After;
 
+            SkillCanvas.instance._innerCircle.GetComponent<Image>().raycastTarget = true;
+            _skillFireReady = true;
+        }
+        SkillCanvas.instance._gage.GetComponent<Image>().fillAmount = 
+            (float)_skillEnergy / _skillEnergyLimit;
+    }
 
+    public void InitializeSkillGage()
+    {
+        _skillEnergy = 0;
+        _skillFireReady = false;
+        SkillCanvas.instance._gage.GetComponent<Image>().enabled = true;
+        SkillCanvas.instance._gage.GetComponent<Image>().fillAmount = 0;
+        SkillCanvas.instance._innerCircle.GetComponent<Image>().raycastTarget = false;
+
+        SkillCanvas.instance._outterCircle.GetComponent<Image>().sprite =
+                _skillBG_Before;
+        SkillCanvas.instance._innerCircle.GetComponent<Image>().sprite =
+            _skillImg_Before;
     }
 }

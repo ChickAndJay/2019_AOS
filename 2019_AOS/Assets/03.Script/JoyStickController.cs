@@ -4,21 +4,20 @@ using UnityEngine;
 using UnityEngine.UI;
 
 public class JoyStickController : MonoBehaviour {
-    public GameObject InnerCircle;
-    public GameObject OutterCircle;
+    public GameObject _innerCircle;
+    public GameObject _outterCircle;
 
     PlayerController _playerController;
 
     bool aiming = false;
     int fingerID = -1;
 
-    public bool readToFire { get; private set; }
-    public Vector3 stickDir { get; private set; }
+    public bool _readToFire { get; protected set; }
+    public Vector3 _stickDir { get; protected set; }
 
     // Use this for initialization
-    void Start () {
+    protected void Start () {
         _playerController = PlayerController.instance;
-        readToFire = false;
 	}
 	
 	// Update is called once per frame
@@ -29,37 +28,29 @@ public class JoyStickController : MonoBehaviour {
             {
                 if(touch.fingerId == fingerID)
                 {
-                    InnerCircle.transform.position = touch.position;
-                    stickDir = InnerCircle.transform.position - OutterCircle.transform.position;
+                    _innerCircle.transform.position = touch.position;
+                    _stickDir = _innerCircle.transform.position - _outterCircle.transform.position;
                     //Debug.Log(dir.magnitude);
-                    if (stickDir.magnitude < 50)
+                    if (_stickDir.magnitude < 50)
                     {
-                        InnerCircle.transform.position = touch.position;
+                        _innerCircle.transform.position = touch.position;
 
                         if (fingerID == PlayerController.instance._right_touch_id)
-                        {
-                            OutterCircle.GetComponent<Image>().color = Color.white;
-                            InnerCircle.GetComponent<Image>().color = Color.white;
-
                             PlayerController.instance._isReadyToFire = false;
-                        }
                     }
                     else
                     {
                         if (fingerID == PlayerController.instance._right_touch_id)
                         {
-                            OutterCircle.GetComponent<Image>().color = Color.red;
-                            InnerCircle.GetComponent<Image>().color = Color.red;
-
                             PlayerController.instance._isReadyToFire = true;
+                            PlayerController.instance._attackStickDir = _stickDir;
                         }
-                        Vector2 dirNormalized = stickDir.normalized * 50;
+                        Vector2 dirNormalized = _stickDir.normalized * 50;
 
-                        Vector2 newPos = new Vector2(OutterCircle.transform.position.x + dirNormalized.x,
-                            OutterCircle.transform.position.y + dirNormalized.y);
-                        InnerCircle.transform.position = newPos;
+                        Vector2 newPos = new Vector2(_outterCircle.transform.position.x + dirNormalized.x,
+                            _outterCircle.transform.position.y + dirNormalized.y);
+                        _innerCircle.transform.position = newPos;
 
-                        readToFire = true;
                     }
                 }
             }
@@ -72,15 +63,15 @@ public class JoyStickController : MonoBehaviour {
         aiming = true;
         this.fingerID = fingerID;
 
-        OutterCircle.GetComponent<Image>().color = Color.white;
-        InnerCircle.GetComponent<Image>().color = Color.white;
+        _outterCircle.GetComponent<Image>().color = Color.white;
+        _innerCircle.GetComponent<Image>().color = Color.white;
         Vector2 position = _playerController._attackStartPos;
         
-        InnerCircle.GetComponent<Transform>().position = (Input.touches)[fingerID].position;
-        OutterCircle.GetComponent<Transform>().position = (Input.touches)[fingerID].position;
+        _innerCircle.GetComponent<Transform>().position = (Input.touches)[fingerID].position;
+        _outterCircle.GetComponent<Transform>().position = (Input.touches)[fingerID].position;
 
-        InnerCircle.SetActive(true);
-        OutterCircle.SetActive(true);
+        _innerCircle.SetActive(true);
+        _outterCircle.SetActive(true);
     }
 
     public void StopControlling()
@@ -88,11 +79,11 @@ public class JoyStickController : MonoBehaviour {
         aiming = false;
         this.fingerID = -1;
 
-        OutterCircle.GetComponent<Image>().color = Color.white;
-        InnerCircle.GetComponent<Image>().color = Color.white;
+        _outterCircle.GetComponent<Image>().color = Color.white;
+        _innerCircle.GetComponent<Image>().color = Color.white;
 
-        InnerCircle.SetActive(false);
-        OutterCircle.SetActive(false);
+        _innerCircle.SetActive(false);
+        _outterCircle.SetActive(false);
 
     }
 }

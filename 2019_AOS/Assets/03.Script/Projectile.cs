@@ -8,51 +8,61 @@ public enum ProjectileType
 }
 
 public class Projectile : MonoBehaviour {
-    public ProjectileType projectileType;
+    public ProjectileType _projectileType;
 
-    float velocity;
-    int damage;
-    float range;
+    float _velocity;
+    int _damage;
+    float _range;
+    bool _isSkill;
 
-    public GameObject Trail;
-    public GameObject RockhitParticle;
-    public GameObject PlayerHitParticle;
-    public GameObject ExplosionPlarticle;
+    public GameObject _trail;
+    public GameObject _playerHitParticle;
+    public GameObject _explosionPlarticle;
 
-    public Renderer BulletMesh;
+    GameObject _rockhitParticle;
+    GameObject _rockExplosionParticle;
+    GameObject _grassParticle;
 
-    GameObject playerController;
+    public Renderer _bulletMesh;
 
-    Vector3 startPos;
-    Vector3 endPos;
-    float startTime;
-    float journeyLength;
+    GameObject _playerController;
 
-    bool hit;
+    Vector3 _startPos;
+    Vector3 _endPos;
+    float _startTime;
+    float _journeyLength;
+
+    bool _hit;
 	// Use this for initialization
 
     // not unity default Start method
-    public void TheStart(float velocity, int damage, float range, GameObject playerController)
+    public void TheStart(float velocity, int damage, float range,bool isSkill,
+        GameObject playerController)
     {
-        this.velocity = velocity; this.damage = damage; this.range = range;
-        this.playerController = playerController;
+        _velocity = velocity; _damage = damage; _range = range;
+        _isSkill = isSkill;
+        _playerController = playerController;
 
-        startPos = transform.position;
+        _rockhitParticle = Resources.Load<GameObject>("Particles/RockHitParticle");
+        _rockExplosionParticle = Resources.Load<GameObject>("Particles/Rock_Explode_Particle");
+        _grassParticle = Resources.Load<GameObject>("Particles/Grass_Explode_Particle");
+
+        _startPos = transform.position;
         Vector3 dir = transform.forward.normalized * range;
-        endPos = dir;
-        endPos += startPos;
-        journeyLength = (endPos - startPos).magnitude;
-        startTime = Time.time;
-        hit = false;
+        _endPos = dir;
+        _endPos += _startPos;
+        _journeyLength = (_endPos - _startPos).magnitude;
+        _startTime = Time.time;
+        _hit = false;
     }
 
     // Update is called once per frame
     void Update () {
-        if (!hit)
+        if (!_hit)
         {
-            float distCovered = (Time.time - startTime) * velocity;
-            float fracJourney = distCovered / journeyLength;
-            transform.position = Vector3.Lerp(startPos, endPos, fracJourney);
+            float distCovered = (Time.time - _startTime) * _velocity;
+            float fracJourney = distCovered / _journeyLength;
+            transform.position = Vector3.Lerp(_startPos, _endPos, fracJourney);
             if (fracJourney >= 1.0f)
             {
                 StartCoroutine(DestroySelf());
@@ -62,24 +72,42 @@ public class Projectile : MonoBehaviour {
 
     private void OnTriggerEnter(Collider other)
     {
-        if (!hit) // 한놈만 패려고 
+        if (!_hit) // 한놈만 패려고 
         {
             if (other.CompareTag("NotGrass"))
             {
-                GameObject particle = Instantiate(RockhitParticle, transform.position, transform.rotation);
+                if (_isSkill)
+                {
+                    GameObject particle = Instantiate(_rockExplosionParticle, other.transform.position, other.transform.rotation);
+                    Destroy(other.gameObject);
+                }
+                else
+                {
+                    GameObject particle = Instantiate(_rockhitParticle, transform.position, transform.rotation);
+                    StartCoroutine(DistortCollider(other));
+                    StartCoroutine(DestroySelf());
+                }
+            }
+            else if (other.CompareTag("Grass"))
+            {
+                if (_isSkill)
+                {
+                    GameObject particle = Instantiate(_grassParticle, other.transform.position, other.transform.rotation);
+                    Destroy(other.gameObject);
+                }
 
-                StartCoroutine(DistortCollider(other));
-                StartCoroutine(DestroySelf());
             }
             else if (other.CompareTag("Competition"))
             {
-                playerController.GetComponent<PlayerStats>().HitCompetition(other.gameObject);
+                if (_isSkill)
+                    ;
+                else
+                {
+                    _playerController.GetComponent<PlayerStats>().HitCompetition(other.gameObject);
+                }
                 StartCoroutine(DestroySelf());
             }
-            else
-            {
-
-            }
+            
         }
     }
 
@@ -125,10 +153,10 @@ public class Projectile : MonoBehaviour {
 
     IEnumerator DestroySelf()
     {
-        hit = true;
-        BulletMesh.enabled = false;
-        ExplosionPlarticle.GetComponent<ParticleSystem>().Play();
-        Trail.GetComponent<ParticleSystem>().Stop();
+        _hit = true;
+        _bulletMesh.enabled = false;
+        _explosionPlarticle.GetComponent<ParticleSystem>().Play();
+        _trail.GetComponent<ParticleSystem>().Stop();
 
         yield return new WaitForSeconds(1.0f);
         Destroy(gameObject);
