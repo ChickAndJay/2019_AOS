@@ -40,7 +40,7 @@ GameObject:
   - component: {fileID: 65687963625808622}
   - component: {fileID: 54050203641074568}
   m_Layer: 0
-  m_Name: Projectile
+  m_Name: Colt_Projectile
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -219,7 +219,6 @@ MonoBehaviour:
   _trail: {fileID: 1618806971590308}
   _playerHitParticle: {fileID: 0}
   _explosionPlarticle: {fileID: 1018588633646170}
-  _rockhitParticle: {fileID: 0}
   _bulletMesh: {fileID: 23264429833745300}
 --- !u!198 &198017091518263266
 ParticleSystem:

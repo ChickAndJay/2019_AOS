@@ -32,11 +32,7 @@ public class SkillAttack : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
         {
             transform.position = data.position;
             _skillFire = false;
-            if (PlayerController.instance._shotIndicator.enabled != false)
-            {
-                PlayerController.instance._shotIndicator.enabled = false;
-                StopAllCoroutines();
-            }
+            PlayerController.instance._characterAttack.StopDrawIndicator();
         }
         else
         {
@@ -45,16 +41,12 @@ public class SkillAttack : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
                 _startPos.y + dirNormalized.y);
             transform.position = newPos;
 
+            PlayerController.instance.DrawSkillIndicator();
             PlayerController.instance._attackStickDir = stickDir;
-            if(PlayerController.instance._shotIndicator.enabled != true)
-            {
-                PlayerController.instance._shotIndicator.enabled = true;
-                StartCoroutine(PlayerController.instance.DrawSkillIndicator());
-            }
+
             _skillFire = true;
         }
     }
-
 
     public void OnPointerUp(PointerEventData data)
     {
@@ -64,16 +56,9 @@ public class SkillAttack : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
         transform.position = _startPos;
         
         if (_skillFire)
-        {
-            PlayerController.instance._shotIndicator.enabled = false;
-            StopAllCoroutines();
-
              PlayerController.instance.FireSkillAttack();
-
-        }
         PlayerController.instance._attackStickDir = Vector3.zero;
     }
-
 
     public void OnPointerDown(PointerEventData data) {
         if(!PlayerController.instance._shotIndicator.enabled)

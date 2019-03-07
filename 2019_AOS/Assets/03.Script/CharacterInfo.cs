@@ -11,6 +11,7 @@ public enum FightType
 [CreateAssetMenu(fileName = "New Character", menuName = "Character")]
 public class CharacterInfo : ScriptableObject {
     public FightType _fightType;
+
     public int _health;
     public int _damage;
     public float _bulletVelocity;

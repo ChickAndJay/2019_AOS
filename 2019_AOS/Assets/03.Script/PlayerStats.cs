@@ -13,7 +13,9 @@ public class PlayerStats : MonoBehaviour {
     public CharacterInfo _characterInfo;
 
     #region Character Information
-    public FightType _fightType { get; private set;}
+    //public FightType _fightType { get; private set;}
+    public CharacterAttack _attackScript { get; private set; }
+    public FightType _fightType { get; private set; }
     public int _health { get; private set; }
     public int _damage { get; private set; }
     public float _bulletVelocity { get; private set; }
@@ -46,17 +48,20 @@ public class PlayerStats : MonoBehaviour {
     #endregion
 
     #region Skill UI
-    Sprite _skillBG_Before;
-    Sprite _skillBG_After;
-    Sprite _skillImg_Before;
-    Sprite _skillImg_After;
+    public Sprite _skillBG_Before;
+    public Sprite _skillBG_After;
+    public Sprite _skillImg_Before;
+    public Sprite _skillImg_After;
     #endregion
-    // Use this for initialization
+ 
+
     void Start () {
         _offset = new Vector3(0, 3.5f, 0.6f);
         _rot = new Vector3(68, 0, 0);
 
-        #region CharacterInformation Setting
+        #region CharacterInformation Setting      
+        _attackScript = GetComponent<CharacterAttack>();
+
         _fightType = _characterInfo._fightType;
         _health = _characterInfo._health;
         _damage = _characterInfo._damage;
@@ -90,10 +95,10 @@ public class PlayerStats : MonoBehaviour {
         _skillEnergy = 0;
         _skillFireReady = false;
 
-        _skillBG_Before = Resources.Load<Sprite>("Sprites/Skill_BG_Before"); ;
-        _skillBG_After = Resources.Load<Sprite>("Sprites/Skill_BG_After") ;
-        _skillImg_Before = Resources.Load<Sprite>("Sprites/Skill_Img_Before") ;
-        _skillImg_After = Resources.Load<Sprite>("Sprites/Skill_Img_After") ;
+        //_skillBG_Before = Resources.Load<Sprite>("Sprites/Skill_BG_Before"); ;
+        //_skillBG_After = Resources.Load<Sprite>("Sprites/Skill_BG_After") ;
+        //_skillImg_Before = Resources.Load<Sprite>("Sprites/Skill_Img_Before") ;
+        //_skillImg_After = Resources.Load<Sprite>("Sprites/Skill_Img_After") ;
     }
 
     // Update is called once per frame
@@ -180,4 +185,5 @@ public class PlayerStats : MonoBehaviour {
         SkillCanvas.instance._innerCircle.GetComponent<Image>().sprite =
             _skillImg_Before;
     }
+
 }

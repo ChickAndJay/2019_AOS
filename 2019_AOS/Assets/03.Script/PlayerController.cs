@@ -24,6 +24,7 @@ public class PlayerController : MonoBehaviour {
     Animator _playerAnimator;
     public PlayerStats _playerStats { get; private set; }
     GrassDetect _grassDetect;
+    public CharacterAttack _characterAttack { get; private set; }
 
     #region Movement
     private bool _isMoving = false;
@@ -60,14 +61,19 @@ public class PlayerController : MonoBehaviour {
     public Material _attackIncatorMat;
     public Material _skillIncatorMat;
 
-    bool isActivatingSkill;
+    public bool isActivatingSkill;
     #endregion
 
 
     // Use this for initialization
     void Start () {
+
+
         _playerAnimator = GetComponentInChildren<Animator>();
         _controller = GetComponent<CharacterController>();
+        _playerStats = GetComponent<PlayerStats>();
+        _characterAttack = GetComponent<CharacterAttack>();
+        _grassDetect = GetComponentInChildren<GrassDetect>();
 
         _width = (float)Screen.width / 2.0f;
         _height = (float)Screen.height / 2.0f;
@@ -82,12 +88,8 @@ public class PlayerController : MonoBehaviour {
 
         _shotIndicator = GetComponent<LineRenderer>();
         _shotIndicator.enabled = false;
-        _attackIncatorMat = Resources.Load<Material>("Materials/Indicator_Attack_Mat");
-        _skillIncatorMat = Resources.Load<Material>("Materials/Indicator_Skill_Mat");
         isActivatingSkill = false;
 
-        _playerStats = GetComponent<PlayerStats>();
-        _grassDetect = GetComponentInChildren<GrassDetect>();
 
         _attackStickDir = Vector3.zero;
     }
@@ -178,18 +180,13 @@ public class PlayerController : MonoBehaviour {
                 }
                 else if(touch.fingerId == _right_touch_id)
                 {
-                    if (_isReadyToFire && !_shotIndicator.enabled)
+                    if (_isReadyToFire)
                     {
-                        _shotIndicator.enabled = true;
-                        _lineRenderingRoutine = StartCoroutine(DrawAttackIndicator());
+                        _characterAttack.StartDrawIndicator(false);
                     }
-                    else if(!_isReadyToFire && _shotIndicator.enabled)
+                    else if(!_isReadyToFire)
                     {
-                        if (_lineRenderingRoutine == null)
-                            continue;                        
-
-                        StopCoroutine(_lineRenderingRoutine);
-                        _shotIndicator.enabled = false;
+                        _characterAttack.StopDrawIndicator();                        
                     }
                 }
             }
@@ -206,10 +203,8 @@ public class PlayerController : MonoBehaviour {
                 {
                     if (_isReadyToFire)
                     {
-                        StopCoroutine(_lineRenderingRoutine);
-                        _shotIndicator.enabled = false;
+                        _characterAttack.StopDrawIndicator();
                         FireBasicAttack();
-
                         _attackStickDir = Vector3.zero;
                     }
 
@@ -231,132 +226,18 @@ public class PlayerController : MonoBehaviour {
 
     public  void FireBasicAttack()
     {
-        if (!GetComponent<PlayerStats>().onFire()) return;
-
-        Vector3 fireDir = new Vector3(_attackStickDir.x, 0, _attackStickDir.y);
-
-        transform.rotation = Quaternion.LookRotation(fireDir);
-
-        GameObject muzzle = Instantiate(_muzzleEffect, 
-            _firePos.transform.position,
-            _firePos.transform.rotation);
-        StartCoroutine(DestroyMuzzle(muzzle, 0.4f));
-        
-        GameObject projectile = GameObject.Instantiate(_attackProjectile,
-            _firePos.transform.position,
-            _firePos.transform.rotation);
-        projectile.GetComponent<Projectile>().TheStart(_playerStats._bulletVelocity,
-            _playerStats._damage, _playerStats._bulletRange, false,  gameObject);
-
+        _characterAttack.FireBaseAttack();
     }
 
     public void FireSkillAttack()
     {
         _playerStats.InitializeSkillGage();
-
-        switch (_playerStats._fightType)
-        {
-            case FightType.Barley:
-                break;
-            case FightType.Colt:
-                StartCoroutine(ActivateColtSkill());
-                break;
-            case FightType.Nita:
-                break;
-            case FightType.Shelly:
-                break;
-        }
+        _characterAttack.FireSkillAttack();
+        _characterAttack.StopDrawIndicator();
     }
 
-    IEnumerator ActivateColtSkill()
+    public void DrawSkillIndicator()
     {
-        int shotCount = 0;
-        isActivatingSkill = true;
-
-        Vector3 fireDir = new Vector3(_attackStickDir.x, 0, _attackStickDir.y);
-        transform.rotation = Quaternion.LookRotation(fireDir);
-
-        while (shotCount < 4)
-        {
-            GameObject muzzle = Instantiate(_muzzleEffect,
-                  _firePos.transform.position,
-                  _firePos.transform.rotation);
-            StartCoroutine(DestroyMuzzle(muzzle, 0.4f));
-
-            GameObject projectile = GameObject.Instantiate(_attackProjectile,                   
-                _firePos.transform.position,                    
-                _firePos.transform.rotation);
-            projectile.GetComponent<Projectile>().TheStart(
-                _playerStats._bulletVelocity,
-                _playerStats._damage
-                , _playerStats._bulletRange
-                , true
-                , gameObject);
-
-            shotCount++;
-            yield return new WaitForSeconds(0.2f);
-        }
-
-        isActivatingSkill = false;
-    }
-
-    public IEnumerator DrawSkillIndicator()
-    {
-        Vector3 fireDir;
-        Vector3 endPoint;
-        _shotIndicator.material = _skillIncatorMat;
-
-        while (true)
-        {
-            fireDir = new Vector3(_attackStickDir.x, 0, _attackStickDir.y);
-
-            endPoint = transform.position + fireDir.normalized * _playerStats._skillRange;
-            endPoint.y = 1;
-
-            _shotIndicator.SetPosition(0, transform.position + new Vector3(0, 1, 0));
-            _shotIndicator.SetPosition(1, endPoint);
-            yield return null;
-        }
-    }
-
-    IEnumerator DestroyMuzzle(GameObject muzzle, float destroyTime)
-    {
-        float startTime = 0;
-
-        while(startTime <= destroyTime)
-        {
-            startTime += Time.deltaTime;
-
-            muzzle.transform.localScale =
-                new Vector3(1 - startTime / destroyTime, 
-                1 - startTime / destroyTime, 
-                1 - startTime / destroyTime);
-
-            yield return null;
-        }
-        //yield return new WaitForSeconds(0.2f);
-        Destroy(muzzle);
-    }
-
-    IEnumerator DrawAttackIndicator()
-    {
-        Vector3 fireDir;
-        Vector3 endPoint;
-        _shotIndicator.material = _attackIncatorMat;
-
-        while (true)
-        {
-            fireDir = new Vector3(_attackStickDir.x, 0, _attackStickDir.y);
-            RaycastHit hit;
-            if (Physics.Raycast(transform.position, fireDir, out hit, _playerStats._bulletRange, LayerMask.NameToLayer("Grass") ))            
-                endPoint = hit.point;            
-            else            
-                endPoint = transform.position + fireDir.normalized * _playerStats._bulletRange;
-            
-            endPoint.y = 1; 
-            _shotIndicator.SetPosition(0, transform.position + new Vector3(0,1,0));
-            _shotIndicator.SetPosition(1, endPoint);
-            yield return null;
-        }
+        _characterAttack.StartDrawIndicator(true);
     }
 }
