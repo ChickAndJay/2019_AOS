@@ -48,11 +48,9 @@ public class PlayerController : MonoBehaviour {
     #endregion
 
     #region Shooting
-    public GameObject _attackProjectile;
     public GameObject _firePos;
     Quaternion _fireRot;
 
-    public GameObject _muzzleEffect;
     public LineRenderer _shotIndicator { get; private set; }
     Coroutine _lineRenderingRoutine;
 
@@ -96,6 +94,7 @@ public class PlayerController : MonoBehaviour {
 
 	// Update is called once per frame
 	void Update () {
+
         foreach (Touch touch in Input.touches)
         {           
             if (touch.phase == TouchPhase.Began)
@@ -142,7 +141,7 @@ public class PlayerController : MonoBehaviour {
 
                 if (_left_touch_id == touch.fingerId)
                     _movingCurrentPos = new Vector2(pos.x, pos.y);
-                else if(_right_touch_id != touch.fingerId)
+                else if(_right_touch_id == touch.fingerId)
                 {
                     _attackCurrentPos = new Vector2(pos.x, pos.y);
                 }

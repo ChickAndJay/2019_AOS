@@ -29,9 +29,10 @@ public class JoyStickController : MonoBehaviour {
                 if(touch.fingerId == fingerID)
                 {
                     _innerCircle.transform.position = touch.position;
+                    Debug.Log(touch.position);
                     _stickDir = _innerCircle.transform.position - _outterCircle.transform.position;
-                    //Debug.Log(dir.magnitude);
-                    if (_stickDir.magnitude < 50)
+                    Debug.Log(_outterCircle.GetComponent<RectTransform>().rect.width);
+                    if (_stickDir.magnitude < _outterCircle.GetComponent<RectTransform>().rect.width/2)
                     {
                         _innerCircle.transform.position = touch.position;
 

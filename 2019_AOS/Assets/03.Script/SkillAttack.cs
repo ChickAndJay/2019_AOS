@@ -9,7 +9,7 @@ public class SkillAttack : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
     PlayerStats _playerStats;
     bool _skillFire;
     bool _baseAttckFire;
-
+    GameObject _outterCircle;
     public bool _isControlling { get; private set; }
     // Use this for initialization
     void Start () {
@@ -19,7 +19,10 @@ public class SkillAttack : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
         _baseAttckFire = false;
         _isControlling = false;
 
+        _outterCircle = SkillCanvas.instance._outterCircle;
+
         GetComponent<Image>().raycastTarget = false;
+        
 	}
 
     public void OnDrag(PointerEventData data)
@@ -27,8 +30,8 @@ public class SkillAttack : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
         if (!_isControlling) return;
 
         Vector2 stickDir = data.position - _startPos;
-
-        if (stickDir.magnitude < 50)
+        
+        if (stickDir.magnitude < _outterCircle.GetComponent<RectTransform>().rect.width / 2)
         {
             transform.position = data.position;
             _skillFire = false;
