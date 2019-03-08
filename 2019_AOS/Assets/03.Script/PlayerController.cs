@@ -44,11 +44,12 @@ public class PlayerController : MonoBehaviour {
     public int _right_touch_id { get; private set; }
     
     public bool _isReadyToFire { get; set; }
-
+    public bool _isReadyToRun { get; set; }
     #endregion
 
     #region Shooting
     public GameObject _firePos;
+    public GameObject _firePosParent;
     Quaternion _fireRot;
 
     public LineRenderer _shotIndicator { get; private set; }
@@ -167,13 +168,19 @@ public class PlayerController : MonoBehaviour {
 
                 if (touch.fingerId == _left_touch_id)
                 {
-                    if (dragAmount > 0.4f)
+                    if (_isReadyToRun)
                     {
                         _playerAnimator.SetBool("isMoving", true);
                         _playerAnimator.SetFloat("MoveSpeed", dragAmount);
                         if(!isActivatingSkill)
                             transform.rotation = Quaternion.LookRotation(moveDir);
                         _controller.Move(moveDir * Time.deltaTime * _speed * dragAmount);
+                    }
+                    else
+                    {
+                        _playerAnimator.SetBool("isMoving", false);
+                        _playerAnimator.SetFloat("MoveSpeed", 0);
+
                     }
 
                 }
@@ -182,6 +189,8 @@ public class PlayerController : MonoBehaviour {
                     if (_isReadyToFire)
                     {
                         _characterAttack.StartDrawIndicator(false);
+                        Vector3 dir = new Vector3(_attackStickDir.x, 0, _attackStickDir.y);
+                        _firePosParent.transform.rotation = Quaternion.LookRotation(dir);
                     }
                     else if(!_isReadyToFire)
                     {
@@ -197,6 +206,8 @@ public class PlayerController : MonoBehaviour {
                     _playerAnimator.SetFloat("MoveSpeed", 0);
                     InGameMainUI.instance.MovementStick.StopControlling();
                     _left_touch_id = -1;
+
+                    _isReadyToRun = false;
                 }
                 else if (touch.fingerId == _right_touch_id && _right_touch_id >= 0)
                 {
@@ -215,11 +226,17 @@ public class PlayerController : MonoBehaviour {
         } // foreach end
         if (Input.touchCount <= 0)
         {
+            _isReadyToRun = false;
+
             _isMoving = false;
             _playerAnimator.SetBool("isMoving", false);
             _playerAnimator.SetFloat("MoveSpeed", 0);
             _movingStartPos = Vector3.zero;
             _movingCurrentPos = Vector3.zero;
+        }
+        if (isActivatingSkill)
+        {
+
         }
     }
 

@@ -30,25 +30,41 @@ public class SkillAttack : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
         if (!_isControlling) return;
 
         Vector2 stickDir = data.position - _startPos;
-        
-        if (stickDir.magnitude < _outterCircle.GetComponent<RectTransform>().rect.width / 2)
+
+        float outterRadius = (_outterCircle.GetComponent<RectTransform>().rect.width / 2) *
+              InGameMainUI.instance._resolutionWidthRatio;
+
+        Vector3 dir = new Vector3(stickDir.x, 0, stickDir.y);
+        PlayerController.instance._firePosParent.transform.rotation = Quaternion.LookRotation(dir);
+
+        if (stickDir.magnitude < outterRadius / 3)
         {
-            transform.position = data.position;
             _skillFire = false;
             PlayerController.instance._characterAttack.StopDrawIndicator();
         }
+        else if (stickDir.magnitude < outterRadius)
+        {
+            transform.position = data.position;
+            _skillFire = true;
+            PlayerController.instance.DrawSkillIndicator();
+            PlayerController.instance._attackStickDir = stickDir;
+        }
         else
         {
-            Vector2 dirNormalized = stickDir.normalized * 50;
+            _skillFire = true;
+            PlayerController.instance.DrawSkillIndicator();
+            PlayerController.instance._attackStickDir = stickDir;
+
+            Vector2 dirNormalized = stickDir.normalized * outterRadius;
             Vector2 newPos = new Vector2(_startPos.x + dirNormalized.x,
                 _startPos.y + dirNormalized.y);
             transform.position = newPos;
 
-            PlayerController.instance.DrawSkillIndicator();
+            //PlayerController.instance.DrawSkillIndicator();
             PlayerController.instance._attackStickDir = stickDir;
-
             _skillFire = true;
         }
+
     }
 
     public void OnPointerUp(PointerEventData data)

@@ -155,11 +155,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 88583c7b31bb5f04cafc78d0e9fc051b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _rotSpeed: 2
   _trail: {fileID: 1641029571669174}
   _playerHitParticle: {fileID: 0}
   _explosionPlarticle: {fileID: 0}
+  _rockhitParticle: {fileID: 0}
+  _rockExplosionParticle: {fileID: 0}
+  _grassParticle: {fileID: 0}
   _bulletMeshObj: {fileID: 1346863874049760}
+  _rotSpeed: 2
+  _integrationRatio: 0.6
 --- !u!198 &198140783218842194
 ParticleSystem:
   m_ObjectHideFlags: 1

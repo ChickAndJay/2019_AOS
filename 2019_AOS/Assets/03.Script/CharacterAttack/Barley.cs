@@ -6,27 +6,24 @@ public class Barley : CharacterAttack {
     LineRenderer _shotIndicator;
     Coroutine _lineRenderingRoutine;
 
-    Vector2 _attackStartPos;
-    Vector2 _attackCurrentPos;
-
     bool isIndicating;
     public GameObject _circleIndicator;
     public float _indicatorSensitivity = 1f;
 
+    Vector3 _landingPosition;
     // Use this for initialization
     void Start () {
         base.Start();
         _shotIndicator = GetComponent<LineRenderer>();
         isIndicating = false;
         _circleIndicator.SetActive(false);
+        _landingPosition = Vector3.zero;
     }
 
     // Update is called once per frame
     void Update () {
         _fireDir = PlayerController.instance._attackStickDir;
-        _attackStartPos = PlayerController.instance._attackStartPos;
-        _attackCurrentPos = PlayerController.instance._attackCurrentPos;
-  
+
     }
 
     override public void StartDrawIndicator(bool isSkill)
@@ -67,7 +64,7 @@ public class Barley : CharacterAttack {
         if (!_playerStats.onFire()) return;
 
         Vector3 fireDir = new Vector3(_fireDir.x, 0, _fireDir.y);
-        transform.rotation = Quaternion.LookRotation(fireDir);
+        //transform.rotation = Quaternion.LookRotation(fireDir);
 
         GameObject muzzle = Instantiate(_muzzleEffect,
             _firePos.transform.position,
@@ -77,8 +74,10 @@ public class Barley : CharacterAttack {
         GameObject projectile = GameObject.Instantiate(_projectile,
             _firePos.transform.position,
             _firePos.transform.rotation);
-        //projectile.GetComponent<Projectile>().TheStart(_playerStats._bulletVelocity,
-        //    _playerStats._damage, _playerStats._bulletRange, false, gameObject);
+        projectile.GetComponent<Projectile_Barley>().TheStart(
+            _playerStats._damage,
+            false,
+            _circleIndicator.transform.position);
 
     }
 
@@ -121,30 +120,38 @@ public class Barley : CharacterAttack {
 
     IEnumerator DrawAttackIndicator()
     {
-        _circleIndicator.SetActive(true);
-        Vector3 fireDir;
-        Vector3 endPoint;
+        Vector3 startPoint;
+        Vector3 drawPoint;
         
         _shotIndicator.material = PlayerController.instance._attackIncatorMat;
         _circleIndicator.transform.position = transform.position;
+        _landingPosition = Vector3.zero;
+
+        _circleIndicator.SetActive(true);
 
         while (true)
         {
-            endPoint = (_attackCurrentPos - _attackStartPos) * _indicatorSensitivity;            
-            endPoint = new Vector3(endPoint.x, 1, endPoint.y); // make 2d to 3d
-            
-            _circleIndicator.transform.position = endPoint + transform.position;
+            startPoint = _firePos.transform.position;
 
-            //fireDir = new Vector3(_fireDir.x, 0, _fireDir.y);
-            //RaycastHit hit;
-            //if (Physics.Raycast(transform.position, fireDir, out hit, _playerStats._bulletRange, LayerMask.NameToLayer("Grass")))
-            //    endPoint = hit.point;
-            //else
-            //    endPoint = transform.position + fireDir.normalized * _playerStats._bulletRange;
+            float magnitude = new Vector2(
+                _fireDir.x / InGameMainUI.instance._resolutionWidthRatio,
+                _fireDir.y / InGameMainUI.instance._resolutionHeightRatio).magnitude;
+            magnitude *= _indicatorSensitivity;
 
-            //endPoint.y = 1;
-            //_shotIndicator.SetPosition(0, transform.position + new Vector3(0, 1, 0));
-            //_shotIndicator.SetPosition(1, endPoint);
+            _landingPosition = new Vector3(_fireDir.normalized.x * magnitude,
+                    0,
+                    _fireDir.normalized.y * magnitude);
+            if (magnitude >= PlayerController.instance._playerStats._bulletRange)
+            {
+                _landingPosition = _landingPosition.normalized *
+                                            PlayerController.instance._playerStats._bulletRange;
+            }
+            _landingPosition.y = 1f;
+
+            drawPoint = startPoint + _landingPosition + new Vector3 (0,-1,0);
+            _circleIndicator.transform.position = drawPoint;
+
+           // Debug.Log(drawPoint + " - " + _landingPosition);
             yield return null;
         }
     }

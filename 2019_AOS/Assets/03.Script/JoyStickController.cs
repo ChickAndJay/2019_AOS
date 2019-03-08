@@ -22,40 +22,57 @@ public class JoyStickController : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-        if (aiming)
+        if (!aiming) return;
+        
+        foreach(Touch touch in Input.touches)
         {
-            foreach(Touch touch in Input.touches)
+            if(touch.fingerId == fingerID)
             {
-                if(touch.fingerId == fingerID)
+                _innerCircle.transform.position = touch.position;
+                //Debug.Log("OutterCircle : " + _outterCircle.transform.position + 
+                //    " - innerCircle : " + touch.position);
+                _stickDir = _innerCircle.transform.position - _outterCircle.transform.position;
+
+                float outterRadius = (_outterCircle.GetComponent<RectTransform>().rect.width / 2) *
+                    InGameMainUI.instance._resolutionWidthRatio;
+
+                //Debug.Log(InGameMainUI.instance._resolutionRatio + " - " + outterRadius);
+                if(_stickDir.magnitude < outterRadius / 3)
+                {
+                    if (fingerID == PlayerController.instance._right_touch_id)
+                        PlayerController.instance._isReadyToFire = false;
+                    else if (fingerID == PlayerController.instance._left_touch_id)
+                        PlayerController.instance._isReadyToRun = false;
+
+                }
+                else if (_stickDir.magnitude < outterRadius)
                 {
                     _innerCircle.transform.position = touch.position;
-                    Debug.Log(touch.position);
-                    _stickDir = _innerCircle.transform.position - _outterCircle.transform.position;
-                    Debug.Log(_outterCircle.GetComponent<RectTransform>().rect.width);
-                    if (_stickDir.magnitude < _outterCircle.GetComponent<RectTransform>().rect.width/2)
+                    if (fingerID == PlayerController.instance._right_touch_id)
                     {
-                        _innerCircle.transform.position = touch.position;
-
-                        if (fingerID == PlayerController.instance._right_touch_id)
-                            PlayerController.instance._isReadyToFire = false;
-                    }
-                    else
+                        PlayerController.instance._isReadyToFire = true;
+                        PlayerController.instance._attackStickDir = _stickDir;
+                    }else if (fingerID == PlayerController.instance._left_touch_id)
+                        PlayerController.instance._isReadyToRun = true;
+                }
+                else
+                {
+                    if (fingerID == PlayerController.instance._right_touch_id)
                     {
-                        if (fingerID == PlayerController.instance._right_touch_id)
-                        {
-                            PlayerController.instance._isReadyToFire = true;
-                            PlayerController.instance._attackStickDir = _stickDir;
-                        }
-                        Vector2 dirNormalized = _stickDir.normalized * 50;
-
-                        Vector2 newPos = new Vector2(_outterCircle.transform.position.x + dirNormalized.x,
-                            _outterCircle.transform.position.y + dirNormalized.y);
-                        _innerCircle.transform.position = newPos;
-
+                        PlayerController.instance._isReadyToFire = true;
+                        PlayerController.instance._attackStickDir = _stickDir;
                     }
+                    else if (fingerID == PlayerController.instance._left_touch_id)
+                        PlayerController.instance._isReadyToRun = true;
+
+                    Vector2 dirNormalized = _stickDir.normalized * outterRadius;
+                    Vector2 newPos = new Vector2(_outterCircle.transform.position.x + dirNormalized.x,
+                        _outterCircle.transform.position.y + dirNormalized.y);
+                    _innerCircle.transform.position = newPos;
                 }
             }
         }
+        
     }
 
     public void StartControlling(int fingerID)

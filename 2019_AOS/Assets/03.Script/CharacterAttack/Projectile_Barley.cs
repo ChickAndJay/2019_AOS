@@ -2,61 +2,85 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Projectile_Barley : MonoBehaviour {
-    float _gravity = 9.8f;
-    float _forward_velovity = 5f;
+public class Projectile_Barley : Projectile{
+    float _gravity ;
+    float _forward_velovity ;
     float _bullet_up_speed;
-    float _time = 0f;
+    float _startTime ;
+    float _maxTime;
+    float _duration;
 
-    Vector3 _rotateDir;
+    float _gravityTime;
+    float _yPos;
+
     public float _rotSpeed = 10;
     Quaternion targetRotation;
 
-
-    public GameObject _trail;
-    public GameObject _playerHitParticle;
-    public GameObject _explosionPlarticle;
-
-    GameObject _rockhitParticle;
-    GameObject _rockExplosionParticle;
-    GameObject _grassParticle;
-
-    public GameObject _bulletMeshObj;
     Transform _meshTr;
 
-    GameObject _playerController;
+    Vector3 _startPosition;
+    Vector3 _landingPosition;
 
-    public void Start () {
+    public float _integrationRatio = 0.8f;
+
+    public void TheStart(int damage, bool isSkill, Vector3 landingPosition )
+    {
+        _damage = damage; _isSkill = isSkill; 
+        _landingPosition = landingPosition;
+
         _gravity = 9.8f;
         _forward_velovity = 5f;
-        _bullet_up_speed = 9.8f;
-        _time = 0f;
+        _startTime = Time.time;
+        _maxTime = 2f;
 
+        _startPosition = transform.position;
+        float length = (landingPosition -transform.position).magnitude;
+        _duration = (length / PlayerController.instance._playerStats._bulletRange) * _maxTime;
+        _bullet_up_speed = 9.8f * (length / PlayerController.instance._playerStats._bulletRange);
+        _gravityTime = 0f;
+        Debug.Log(length / PlayerController.instance._playerStats._bulletRange);
         _meshTr = _bulletMeshObj.GetComponent<Transform>();
         targetRotation = _meshTr.rotation;
+        _yPos = 0f;
 
-        Debug.Log(transform.forward + " - " + transform.forward.magnitude);
+        _hit = false;
     }
-
+    
     // Update is called once per frame
     void Update() {
-        if (_time > 2f) return;
+        if (_hit) return;
 
-        Vector3 newPos = new Vector3(
-            transform.forward.x * _forward_velovity * Time.deltaTime,
-            (_bullet_up_speed - _gravity * _time) * Time.deltaTime,
-            transform.forward.z * _forward_velovity * Time.deltaTime);
+        _gravityTime += Time.deltaTime;
+        float forwardCovered = (Time.time - _startTime) * _forward_velovity;
+        float forwardJourney = forwardCovered / _landingPosition.magnitude;
 
-        transform.position += newPos;
+        Vector3 endPos = new Vector3(_landingPosition.x, 0, _landingPosition.z);
+        _yPos += (_bullet_up_speed - _gravity * _gravityTime) * Time.deltaTime * _integrationRatio;
+        transform.position = Vector3.Lerp(_startPosition, endPos, forwardJourney);        
+        Debug.Log(transform.position + " - " + (_bullet_up_speed - _gravity * _gravityTime) * Time.deltaTime * _integrationRatio);
+        transform.position += new Vector3(
+            0,
+            _yPos,
+            0);
 
-        targetRotation *= Quaternion.AngleAxis(10, Vector3.left);
-        _meshTr.rotation =
-            Quaternion.Lerp(_meshTr.rotation, 
-            targetRotation, 
-            10 * _rotSpeed * Time.deltaTime);
-           
-        _time += Time.deltaTime;
+        if (forwardJourney >= 1.0f)
+        {
+            _hit = true;
+        }
+        //transform.position += newPos;
+
+        //targetRotation *= Quaternion.AngleAxis(10, Vector3.left);
+        //_meshTr.rotation =
+        //    Quaternion.Lerp(_meshTr.rotation, 
+        //    targetRotation, 
+        //    10 * _rotSpeed * Time.deltaTime);
+
 
         //transform.position 
+    }
+
+    protected override IEnumerator DestroySelf(float time)
+    {
+        throw new System.NotImplementedException();
     }
 }

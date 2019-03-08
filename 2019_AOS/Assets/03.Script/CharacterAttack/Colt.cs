@@ -50,7 +50,7 @@ public class Colt : CharacterAttack {
         if (!_playerStats.onFire()) return;
 
         Vector3 fireDir = new Vector3(_fireDir.x, 0, _fireDir.y);
-        transform.rotation = Quaternion.LookRotation(fireDir);
+        //transform.rotation = Quaternion.LookRotation(fireDir);
 
         GameObject muzzle = Instantiate(_muzzleEffect,
             _firePos.transform.position,
@@ -60,8 +60,8 @@ public class Colt : CharacterAttack {
         GameObject projectile = GameObject.Instantiate(_projectile,
             _firePos.transform.position,
             _firePos.transform.rotation);
-        projectile.GetComponent<Projectile>().TheStart(_playerStats._bulletVelocity,
-            _playerStats._damage, _playerStats._bulletRange, false, gameObject);
+        projectile.GetComponent<Projectile_Colt>().TheStart(_playerStats._bulletVelocity,
+            _playerStats._damage, _playerStats._bulletRange, false);
 
     }
 
@@ -76,7 +76,7 @@ public class Colt : CharacterAttack {
         PlayerController.instance.isActivatingSkill = true;
 
         Vector3 fireDir = new Vector3(_fireDir.x, 0, _fireDir.y);
-        transform.rotation = Quaternion.LookRotation(fireDir);
+       // transform.rotation = Quaternion.LookRotation(fireDir);
 
         while (shotCount < 4)
         {
@@ -88,12 +88,11 @@ public class Colt : CharacterAttack {
             GameObject projectile = GameObject.Instantiate(_projectile,
                 _firePos.transform.position,
                 _firePos.transform.rotation);
-            projectile.GetComponent<Projectile>().TheStart(
+            projectile.GetComponent<Projectile_Colt>().TheStart(
                 _playerStats._bulletVelocity,
                 _playerStats._damage
                 , _playerStats._bulletRange
-                , true
-                , gameObject);
+                , true);
 
             shotCount++;
             yield return new WaitForSeconds(0.2f);

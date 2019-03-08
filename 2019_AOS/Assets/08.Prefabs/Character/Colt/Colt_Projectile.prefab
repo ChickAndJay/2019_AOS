@@ -215,11 +215,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 503c755d8738e6b439fd6286b4a7b7dd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _projectileType: 0
   _trail: {fileID: 1618806971590308}
   _playerHitParticle: {fileID: 0}
   _explosionPlarticle: {fileID: 1018588633646170}
-  _bulletMesh: {fileID: 23264429833745300}
+  _rockhitParticle: {fileID: 1693352552510160, guid: d15ac7dd27a788e42b6a99f8b8a3ce0d,
+    type: 2}
+  _rockExplosionParticle: {fileID: 1999722438643500, guid: a32f1bf59b21c7d4c99ae8492c2c6c65,
+    type: 2}
+  _grassParticle: {fileID: 1554175075047628, guid: 0f06f77b7aa89664e9ed3b77565c8b69,
+    type: 2}
+  _bulletMeshObj: {fileID: 1643242702179538}
 --- !u!198 &198017091518263266
 ParticleSystem:
   m_ObjectHideFlags: 1

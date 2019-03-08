@@ -15,7 +15,7 @@ MonoBehaviour:
   _health: 3500
   _damage: 200
   _bulletVelocity: 4
-  _bulletRange: 8
+  _bulletRange: 6
   _ammo: 3
   _reloadTime: 1.5
   _skillEnergyLimit: 1000
