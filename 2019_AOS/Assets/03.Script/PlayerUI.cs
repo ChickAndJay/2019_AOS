@@ -8,7 +8,7 @@ public class PlayerUI : MonoBehaviour {
     public GameObject ammoBar;
     public GameObject reloadBar;
     public GameObject ID;
-    
+    public GameObject scoreTxt;
 
     // Use this for initialization
     void Start () {

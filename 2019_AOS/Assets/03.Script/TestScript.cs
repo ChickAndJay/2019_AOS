@@ -11,14 +11,43 @@ public class TestScript : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
         time = 0;
-	}
-	
-	// Update is called once per frame
-	void Update () {
-        time += Time.deltaTime;
-        Vector3 temp = Vector3.Lerp(start.transform.position, end.transform.position, time / 5);
-        temp += new Vector3(0, Time.time, 0);
 
-        transform.position = temp;
+	}
+
+    bool force = false;
+    public void addforce()
+    {
+        force = true;
+    }
+
+    private void FixedUpdate()
+    {
+        if (force)
+        {
+            force = false;
+            GetComponent<Rigidbody>().useGravity = true;
+            GetComponent<Rigidbody>().AddForce(new Vector3(0, 9.3f, 5), ForceMode.VelocityChange);
+            //StartCoroutine(timecheck());
+        }
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("Ground"))
+        {
+            GetComponent<Rigidbody>().velocity = Vector3.zero;
+            GetComponent<Rigidbody>().useGravity = false;
+
+        }
+    }
+    IEnumerator timecheck()
+    {
+        yield return new WaitForSeconds(2.0f);
+        GetComponent<Rigidbody>().velocity = Vector3.zero;
+        GetComponent<Rigidbody>().useGravity = false;
+
+    }
+    // Update is called once per frame
+    void Update () {
 	}
 }

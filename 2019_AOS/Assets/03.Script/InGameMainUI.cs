@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class InGameMainUI : MonoBehaviour {
     #region Singleton
@@ -19,13 +20,15 @@ public class InGameMainUI : MonoBehaviour {
     public GameObject _AttackStick_Panel;
     public GameObject _MovementStick_Panel;
     public GameObject _SkillSitck_Panel;
-    public GameObject _ScoreBar_Ourside;
-    public GameObject _ScoreBar_Enemy;
+    public ScoreBar _ScoreBar_Ourside;
+    public ScoreBar _ScoreBar_Enemy;
 
     public JoyStickController AttackStick { get; private set; }
     public JoyStickController MovementStick { get; private set; }
     public float _resolutionWidthRatio { get; private set; }
     public float _resolutionHeightRatio { get; private set; }
+
+
     // Use this for initialization
     void Start () {
         AttackStick = _AttackStick_Panel.GetComponent<JoyStickController>();

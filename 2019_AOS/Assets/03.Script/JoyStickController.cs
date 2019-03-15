@@ -29,14 +29,11 @@ public class JoyStickController : MonoBehaviour {
             if(touch.fingerId == fingerID)
             {
                 _innerCircle.transform.position = touch.position;
-                //Debug.Log("OutterCircle : " + _outterCircle.transform.position + 
-                //    " - innerCircle : " + touch.position);
                 _stickDir = _innerCircle.transform.position - _outterCircle.transform.position;
 
                 float outterRadius = (_outterCircle.GetComponent<RectTransform>().rect.width / 2) *
                     InGameMainUI.instance._resolutionWidthRatio;
 
-                //Debug.Log(InGameMainUI.instance._resolutionRatio + " - " + outterRadius);
                 if(_stickDir.magnitude < outterRadius / 3)
                 {
                     if (fingerID == PlayerController.instance._right_touch_id)

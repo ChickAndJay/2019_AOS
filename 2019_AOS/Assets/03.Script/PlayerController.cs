@@ -91,6 +91,8 @@ public class PlayerController : MonoBehaviour {
 
 
         _attackStickDir = Vector3.zero;
+
+        Input.simulateMouseWithTouches = true;
     }
 
 	// Update is called once per frame

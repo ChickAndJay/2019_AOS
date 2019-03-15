@@ -45,6 +45,7 @@ public class PlayerStats : MonoBehaviour {
     GameObject _ammoBar;
     GameObject _reloadBar;
     GameObject _ID;
+    GameObject _scoreTxt;
     #endregion
 
     #region Skill UI
@@ -58,6 +59,7 @@ public class PlayerStats : MonoBehaviour {
     void Start () {
         _offset = new Vector3(0, 3.5f, 0.6f);
         _rot = new Vector3(68, 0, 0);
+        _score = 0;
 
         #region CharacterInformation Setting      
         _attackScript = GetComponent<CharacterAttack>();
@@ -87,6 +89,8 @@ public class PlayerStats : MonoBehaviour {
         _ammoBar = _playerInfoCanvas.GetComponent<PlayerUI>().ammoBar;
         _reloadBar  = _playerInfoCanvas.GetComponent<PlayerUI>().reloadBar;
         _ID = _playerInfoCanvas.GetComponent<PlayerUI>().ID;
+        _scoreTxt = _playerInfoCanvas.GetComponent<PlayerUI>().scoreTxt;
+        _scoreTxt.GetComponent<Text>().text = _score.ToString() ;
         #endregion
 
         _reload = false;
@@ -94,11 +98,6 @@ public class PlayerStats : MonoBehaviour {
         _currentReloadAmount = 1f;
         _skillEnergy = 0;
         _skillFireReady = false;
-
-        //_skillBG_Before = Resources.Load<Sprite>("Sprites/Skill_BG_Before"); ;
-        //_skillBG_After = Resources.Load<Sprite>("Sprites/Skill_BG_After") ;
-        //_skillImg_Before = Resources.Load<Sprite>("Sprites/Skill_Img_Before") ;
-        //_skillImg_After = Resources.Load<Sprite>("Sprites/Skill_Img_After") ;
     }
 
     // Update is called once per frame
@@ -118,11 +117,13 @@ public class PlayerStats : MonoBehaviour {
 
         _currentAmmo--;
 
-        _ammoBar.GetComponent<Image>().fillAmount -= (float)1 / _ammo;
-        _reloadBar.GetComponent<Image>().fillAmount -= (float)1 / _ammo;
+        _currentReloadAmount -= (float)1 / _ammo;
+        if (gameObject.CompareTag("Player"))
+        {
+            _ammoBar.GetComponent<Image>().fillAmount = _currentReloadAmount;
+            _reloadBar.GetComponent<Image>().fillAmount = _currentReloadAmount;
+        }
         _reload = true;
-
-        _currentReloadAmount = _reloadBar.GetComponent<Image>().fillAmount;
         StopAllCoroutines();
         StartCoroutine(Reload());
 
@@ -133,11 +134,13 @@ public class PlayerStats : MonoBehaviour {
     {
         float startTime = Time.time;
         Image reloadBarImage = _reloadBar.GetComponent<Image>();
-
+        float _reloadamount = _currentReloadAmount;
         while (_currentAmmo < _ammo)
         {
-            reloadBarImage.fillAmount = _currentReloadAmount + 
-                (Time.time - startTime) / ((float)_reloadTime * _ammo) ;
+            _currentReloadAmount = _reloadamount + (Time.time - startTime) / ((float)_reloadTime * _ammo);
+
+            if (gameObject.CompareTag("Player"))
+                reloadBarImage.fillAmount = _currentReloadAmount;
 
             int i = 0; 
             while(i <= _ammo)
@@ -145,7 +148,8 @@ public class PlayerStats : MonoBehaviour {
                 if(reloadBarImage.fillAmount >= (float)(_ammo-i) / _ammo)
                 {
                     _currentAmmo = _ammo - i;
-                    _ammoBar.GetComponent<Image>().fillAmount = (float)(_ammo - i) / _ammo;
+                    if(gameObject.CompareTag("Player"))
+                        _ammoBar.GetComponent<Image>().fillAmount = (float)(_ammo - i) / _ammo;
                     break;
                 }
                 i++;
@@ -157,7 +161,7 @@ public class PlayerStats : MonoBehaviour {
     public void HitCompetition(GameObject gameObject)
     {
         _skillEnergy += _damage;
-        if(_skillEnergy >= _skillEnergyLimit)
+        if(_skillEnergy >= _skillEnergyLimit && this.gameObject.CompareTag("Player"))
         {
             SkillCanvas.instance._gage.GetComponent<Image>().enabled = false ;
             SkillCanvas.instance._outterCircle.GetComponent<Image>().sprite =
@@ -176,6 +180,8 @@ public class PlayerStats : MonoBehaviour {
     {
         _skillEnergy = 0;
         _skillFireReady = false;
+
+        if (!gameObject.CompareTag("Player")) return;
         SkillCanvas.instance._gage.GetComponent<Image>().enabled = true;
         SkillCanvas.instance._gage.GetComponent<Image>().fillAmount = 0;
         SkillCanvas.instance._innerCircle.GetComponent<Image>().raycastTarget = false;
@@ -186,4 +192,23 @@ public class PlayerStats : MonoBehaviour {
             _skillImg_Before;
     }
 
+    public void IncreaseScore()
+    {
+        _score++;
+        if (!gameObject.CompareTag("Competition")) {
+            InGameMainUI.instance._ScoreBar_Ourside._scoreText.text = _score.ToString();
+            InGameMainUI.instance._ScoreBar_Ourside._scoreFilled[_score - 1].enabled = true;
+
+            GameManagerScript.instance.IncreaseOurScore();
+            _scoreTxt.GetComponent<Text>().text = _score.ToString();
+        }
+        else
+        {
+            InGameMainUI.instance._ScoreBar_Enemy._scoreText.text = _score.ToString();
+            InGameMainUI.instance._ScoreBar_Enemy._scoreFilled[_score - 1].enabled = true;
+
+            GameManagerScript.instance.IncreaseEnemyScore();
+            _scoreTxt.GetComponent<Text>().text = _score.ToString();
+        }
+    }
 }

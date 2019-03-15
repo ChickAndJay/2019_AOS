@@ -6,17 +6,21 @@ public class Barley : CharacterAttack {
     LineRenderer _shotIndicator;
     Coroutine _lineRenderingRoutine;
 
-    bool isIndicating;
-    public GameObject _circleIndicator;
-    public float _indicatorSensitivity = 1f;
+    GameObject _circleIndicator;
+    public GameObject _attackCircle;
+    public GameObject _skillCircle;
 
+    public float _indicatorSensitivity = 1f;
     Vector3 _landingPosition;
+
+    
     // Use this for initialization
     void Start () {
         base.Start();
         _shotIndicator = GetComponent<LineRenderer>();
-        isIndicating = false;
-        _circleIndicator.SetActive(false);
+        _shotIndicator.positionCount = 10;
+        _attackCircle.SetActive(false);
+        _skillCircle.SetActive(false);
         _landingPosition = Vector3.zero;
     }
 
@@ -30,41 +34,45 @@ public class Barley : CharacterAttack {
     {
         if (_shotIndicator.enabled == false)
         {
-            isIndicating = true;
             if (isSkill)
             {
-                _shotIndicator.enabled = true;
-                _lineRenderingRoutine = StartCoroutine(DrawSkillIndicator());
+             //   _shotIndicator.enabled = true;
+                _circleIndicator = _skillCircle;
+             //   _lineRenderingRoutine = StartCoroutine(DrawAttackIndicator(true));
             }
             else
             {
-                _shotIndicator.enabled = true;
-                _lineRenderingRoutine = StartCoroutine(DrawAttackIndicator());
+                //_shotIndicator.enabled = true;
+                _circleIndicator = _attackCircle;
+               // _lineRenderingRoutine = StartCoroutine(DrawAttackIndicator(false));
             }
+            _shotIndicator.enabled = true;
+            _lineRenderingRoutine = StartCoroutine(DrawAttackIndicator(isSkill));
+
         }
+
+
     }
 
     override public void StopDrawIndicator()
     {
         if (_lineRenderingRoutine != null)
-        {
             StopCoroutine(_lineRenderingRoutine);
-        }
-        else
-        {
 
-        }
-        _circleIndicator.SetActive(false);
+        _skillCircle.SetActive(false);
+        _attackCircle.SetActive(false);
         _shotIndicator.enabled = false;
-
     }
 
     override public void FireBaseAttack()
     {
         if (!_playerStats.onFire()) return;
 
+
         Vector3 fireDir = new Vector3(_fireDir.x, 0, _fireDir.y);
-        //transform.rotation = Quaternion.LookRotation(fireDir);
+
+        _upperBodyDir = fireDir;
+        rotate = true;
 
         GameObject muzzle = Instantiate(_muzzleEffect,
             _firePos.transform.position,
@@ -78,6 +86,61 @@ public class Barley : CharacterAttack {
             _playerStats._damage,
             false,
             _circleIndicator.transform.position);
+
+        rotate = false;
+
+    }
+
+    override public void FireSkillAttack() {
+        StartCoroutine(ActivateSkill());
+    }
+
+    IEnumerator ActivateSkill()
+    {
+
+        int shotCount = 0;
+        PlayerController.instance.isActivatingSkill = true;
+
+        Vector3 fireDir = new Vector3(_fireDir.x, 0, _fireDir.y);
+        Vector3[] landingPositions = new Vector3[5];
+        landingPositions[0] = _circleIndicator.transform.position;
+        landingPositions[1] = landingPositions[0] +
+                    new Vector3(1, 0, 1);
+        landingPositions[2] = landingPositions[0] +
+                    new Vector3(-1, 0, 1);
+        landingPositions[3] = landingPositions[0] +
+                    new Vector3(1, 0, -1);
+        landingPositions[4] = landingPositions[0] +
+                    new Vector3(-1, 0, -1);
+
+        _upperBodyDir = fireDir;
+        rotate = true;
+
+
+        while (shotCount < 5)
+        {
+            GameObject muzzle = Instantiate(_muzzleEffect,
+            _firePos.transform.position,
+            _firePos.transform.rotation);
+            StartCoroutine(DestroyMuzzle(muzzle, 0.4f));
+
+
+
+            GameObject projectile = GameObject.Instantiate(_projectile,
+                _firePos.transform.position,
+                _firePos.transform.rotation);
+            projectile.GetComponent<Projectile_Barley>().TheStart(
+                _playerStats._damage,
+                false,
+                landingPositions[shotCount]);
+            //Debug.Log(projectile.name + "  :  " + landingPositions[shotCount]);
+            shotCount++;
+            yield return new WaitForSeconds(0.2f);
+        }
+
+        PlayerController.instance.isActivatingSkill = false;
+
+        rotate = false;
 
     }
 
@@ -99,30 +162,36 @@ public class Barley : CharacterAttack {
         Destroy(muzzle);
     }
 
-    public IEnumerator DrawSkillIndicator()
-    {
-        Vector3 fireDir;
-        Vector3 endPoint;
-        _shotIndicator.material = PlayerController.instance._skillIncatorMat;
+    //public IEnumerator DrawSkillIndicator()
+    //{
+    //    Vector3 fireDir;
+    //    Vector3 endPoint;
+    //    _shotIndicator.material = PlayerController.instance._skillIncatorMat;
 
-        while (true)
-        {
-            fireDir = new Vector3(_fireDir.x, 0, _fireDir.y);
+    //    while (true)
+    //    {
+    //        fireDir = new Vector3(_fireDir.x, 0, _fireDir.y);
 
-            endPoint = transform.position + fireDir.normalized * _playerStats._skillRange;
-            endPoint.y = 1;
+    //        endPoint = transform.position + fireDir.normalized * _playerStats._skillRange;
+    //        endPoint.y = 1;
 
-            _shotIndicator.SetPosition(0, transform.position + new Vector3(0, 1, 0));
-            _shotIndicator.SetPosition(1, endPoint);
-            yield return null;
-        }
-    }
+    //        _shotIndicator.SetPosition(0, transform.position + new Vector3(0, 1, 0));
+    //        _shotIndicator.SetPosition(1, endPoint);
+    //        yield return null;
+    //    }
+    //}
 
-    IEnumerator DrawAttackIndicator()
+    IEnumerator DrawAttackIndicator(bool isSkill)
     {
         Vector3 startPoint;
-        Vector3 drawPoint;
-        
+
+        Vector3[] linePoisitions = new Vector3[_shotIndicator.positionCount];
+        float limitRange;
+        if (isSkill)
+            limitRange = PlayerController.instance._playerStats._skillRange;
+        else
+            limitRange = PlayerController.instance._playerStats._bulletRange;
+
         _shotIndicator.material = PlayerController.instance._attackIncatorMat;
         _circleIndicator.transform.position = transform.position;
         _landingPosition = Vector3.zero;
@@ -141,17 +210,26 @@ public class Barley : CharacterAttack {
             _landingPosition = new Vector3(_fireDir.normalized.x * magnitude,
                     0,
                     _fireDir.normalized.y * magnitude);
-            if (magnitude >= PlayerController.instance._playerStats._bulletRange)
+
+            if (magnitude >= limitRange)
             {
-                _landingPosition = _landingPosition.normalized *
-                                            PlayerController.instance._playerStats._bulletRange;
+                _landingPosition = _landingPosition.normalized *  limitRange;
+            }            
+            _circleIndicator.transform.position = startPoint + _landingPosition + new Vector3(0,-1,0);
+
+            // linerenderer positioning arc
+            for (int i = 1; i <= _shotIndicator.positionCount; i++)
+            {
+                float ratio = _landingPosition.magnitude / limitRange;
+                float _bullet_up_speed = 9.8f * ratio;
+                ratio = ratio * i * 0.2f;
+                float y = 1 + (_bullet_up_speed * ratio - 9.8f * ratio * ratio / 2);
+
+                linePoisitions[i-1] = Vector3.Lerp(startPoint, _circleIndicator.transform.position, (float)i/10);
+                linePoisitions[i-1].y = y;
+                           
             }
-            _landingPosition.y = 1f;
-
-            drawPoint = startPoint + _landingPosition + new Vector3 (0,-1,0);
-            _circleIndicator.transform.position = drawPoint;
-
-           // Debug.Log(drawPoint + " - " + _landingPosition);
+            _shotIndicator.SetPositions(linePoisitions);
             yield return null;
         }
     }

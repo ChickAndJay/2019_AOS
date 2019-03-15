@@ -2,20 +2,16 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum ProjectileType
-{
-    Basic
-}
 
 public class Projectile_Colt : Projectile
 {
-    float _range;
-    float _velocity;
+    protected float _range;
+    protected float _velocity;
 
-    Vector3 _startPos;
-    Vector3 _endPos;
-    float _startTime;
-    float _journeyLength;
+    protected Vector3 _startPos;
+    protected Vector3 _endPos;
+    protected float _startTime;
+    protected float _journeyLength;
 
 	// Use this for initialization
 
@@ -35,11 +31,13 @@ public class Projectile_Colt : Projectile
     }
 
     // Update is called once per frame
-    void Update () {
+    protected void Update () {
         if (!_hit)
         {
             float distCovered = (Time.time - _startTime) * _velocity;
             float fracJourney = distCovered / _journeyLength;
+            if (fracJourney >= 1.0f)
+                fracJourney = 1.0f;
             transform.position = Vector3.Lerp(_startPos, _endPos, fracJourney);
             if (fracJourney >= 1.0f)
             {
@@ -48,8 +46,9 @@ public class Projectile_Colt : Projectile
         }
     }
 
-    private void OnTriggerEnter(Collider other)
+    protected void OnTriggerEnter(Collider other)
     {
+
         if (!_hit) // 한놈만 패려고 
         {
             if (other.CompareTag("NotGrass"))
@@ -62,7 +61,16 @@ public class Projectile_Colt : Projectile
                 else
                 {
                     GameObject particle = Instantiate(_rockhitParticle, transform.position, transform.rotation);
-                    StartCoroutine(DistortCollider(other));
+                    if (other.GetComponent<DistrotObject>())
+                    {
+                        other.GetComponent<DistrotObject>().StartDistort();
+                    }
+                    else
+                    {
+                        other.gameObject.AddComponent<DistrotObject>();
+                        other.GetComponent<DistrotObject>().StartDistort();
+                    }
+                    //StartCoroutine(DistortCollider(other));
                     StartCoroutine(DestroySelf(1.0f));
                 }
             }
@@ -94,9 +102,8 @@ public class Projectile_Colt : Projectile
         _hit = true;
         _bulletMeshObj.GetComponent<Renderer>().enabled = false;
         _explosionPlarticle.GetComponent<ParticleSystem>().Play();
-        _trail.GetComponent<ParticleSystem>().Stop();
-
         yield return new WaitForSeconds(time);
+
         Destroy(gameObject);
     }
 }
