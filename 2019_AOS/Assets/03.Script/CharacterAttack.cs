@@ -16,17 +16,36 @@ public class CharacterAttack : MonoBehaviour {
     protected Vector3 _upperBodyDir;
     protected bool rotate = false;
 
+    protected bool _isCharacterAI;
+    protected AIController _AIController;
+
+    public AudioClip _fireSound;
+    protected AudioSource _audioSource;
+    
     protected void Start()
     {
+        _audioSource = GetComponent<AudioSource>();
         _playerStats = GetComponent<PlayerStats>();
-        _firePos = PlayerController.instance._firePos;
         _animator = GetComponentInChildren<Animator>();
+        if (gameObject.CompareTag("Player"))
+        {
+            _isCharacterAI = false;
+            _firePos = PlayerController.instance._firePos;
+
+        }
+        else
+        {
+            _isCharacterAI = true;
+            _AIController = GetComponent<AIController>();
+            _firePos = _AIController._firePos;
+        }
     }
 
     private void LateUpdate()
     {
         if (rotate)
         {
+            if (_upperBodyDir == Vector3.zero) return;
             Vector3 spineRot = Quaternion.LookRotation(_upperBodyDir).eulerAngles;
             spineRot -= transform.eulerAngles;
 

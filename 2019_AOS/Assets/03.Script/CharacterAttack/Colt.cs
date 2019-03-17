@@ -6,19 +6,26 @@ public class Colt : CharacterAttack {
     LineRenderer _shotIndicator;
     Coroutine _lineRenderingRoutine;
 
+
     // Use this for initialization
     private void Start()
     {
         base.Start();
         _shotIndicator = GetComponent<LineRenderer>();
+
     }
 
     private void Update()
     {
-        _fireDir = PlayerController.instance._attackStickDir;
+        if (!_isCharacterAI)
+            _fireDir = PlayerController.instance._attackStickDir;
+        else
+            _fireDir = _AIController._attackStickDir;
     }
 
     override public void StartDrawIndicator(bool isSkill) {
+        if (_isCharacterAI) return;
+
         if (_shotIndicator.enabled == false)
         {
             if (isSkill)
@@ -35,6 +42,8 @@ public class Colt : CharacterAttack {
     }
 
     override public void StopDrawIndicator() {
+        if (_isCharacterAI) return;
+
         if (_lineRenderingRoutine != null)
         {
             StopCoroutine(_lineRenderingRoutine);
@@ -56,8 +65,21 @@ public class Colt : CharacterAttack {
 
     IEnumerator ActivateBaseAttack()
     {
+        string enemyTag;
+
+        _audioSource.clip = _fireSound;
+
         _animator.SetBool("Firing", true);
-        PlayerController.instance.isActivatingSkill = true;
+        if (!_isCharacterAI)
+        {
+            PlayerController.instance.isActivatingSkill = true;
+            enemyTag = "Competition";
+        }
+        else
+        {
+            _AIController.isActivatingSkill = true;
+            enemyTag = GetComponent<AIController>()._enemyTag;
+        }
 
         int shotCount = 0;
 
@@ -71,6 +93,7 @@ public class Colt : CharacterAttack {
 
         while (shotCount < 4)
         {
+            _audioSource.Play();
             muzzle = Instantiate(_muzzleEffect,
                   _firePos.transform.position + _firePos.transform.right *0.15f,
                   _firePos.transform.rotation);
@@ -80,10 +103,13 @@ public class Colt : CharacterAttack {
                 _firePos.transform.position + _firePos.transform.right * 0.15f,
                 _firePos.transform.rotation);
             projectile.GetComponent<Projectile_Colt>().TheStart(
+                gameObject,
                 _playerStats._bulletVelocity,
                 _playerStats._damage
                 , _playerStats._bulletRange
-                , false);
+                , false
+                , enemyTag
+                );
 
             yield return new WaitForSeconds(0.02f);
 
@@ -96,18 +122,23 @@ public class Colt : CharacterAttack {
                 _firePos.transform.position - _firePos.transform.right * 0.15f,
                 _firePos.transform.rotation);
             projectile.GetComponent<Projectile_Colt>().TheStart(
+                gameObject,
                 _playerStats._bulletVelocity,
                 _playerStats._damage
                 , _playerStats._bulletRange
-                , false);
+                , false
+                , enemyTag
+                );
 
             shotCount++;
             yield return new WaitForSeconds(0.02f);
         }
-        //Time.timeScale = 1f;
-        PlayerController.instance.isActivatingSkill = false;
+        if (!_isCharacterAI)
+            PlayerController.instance.isActivatingSkill = false;
+        else
+            _AIController.isActivatingSkill = false;
+
         _animator.SetBool("Firing", false);
-        ///_upperSpine.transform.rotation = upperSpineOrginRot;
         rotate = false;
 
     }
@@ -119,21 +150,39 @@ public class Colt : CharacterAttack {
 
     IEnumerator ActivateSkill()
     {
+        _audioSource.clip = _fireSound;
+
         _animator.SetBool("Firing", true);
 
         int shotCount = 0;
-        PlayerController.instance.isActivatingSkill = true;
+        string enemyTag;
+
+        if (!_isCharacterAI)
+        {
+            PlayerController.instance.isActivatingSkill = true;
+            enemyTag = "Competition";
+        }
+        else
+        {
+            _AIController.isActivatingSkill = true;
+            enemyTag = GetComponent<AIController>()._enemyTag;
+        }
 
         Vector3 fireDir = new Vector3(_fireDir.x, 0, _fireDir.y);
-        // transform.rotation = Quaternion.LookRotation(fireDir);
+
         GameObject muzzle;
         GameObject projectile;
 
-        Quaternion upperSpineOrginRot = _upperSpine.transform.rotation;
-        _upperSpine.transform.rotation = Quaternion.LookRotation(fireDir);
+        _upperBodyDir = fireDir;
+        rotate = true;
 
-        while (shotCount < 6)
+        //Quaternion upperSpineOrginRot = _upperSpine.transform.rotation;
+        //_upperSpine.transform.rotation = Quaternion.LookRotation(fireDir);
+
+        while (shotCount < 8)
         {
+            _audioSource.Play();
+
             muzzle = Instantiate(_muzzleEffect,
                   _firePos.transform.position + _firePos.transform.right * 0.15f,
                   _firePos.transform.rotation);
@@ -143,10 +192,13 @@ public class Colt : CharacterAttack {
                 _firePos.transform.position + _firePos.transform.right * 0.15f,
                 _firePos.transform.rotation);
             projectile.GetComponent<Projectile_Colt>().TheStart(
+                gameObject,
                 _playerStats._bulletVelocity,
                 _playerStats._damage
                 , _playerStats._skillRange
-                , true);
+                , true
+                , enemyTag
+                );
 
             yield return new WaitForSeconds(0.02f);
 
@@ -159,18 +211,26 @@ public class Colt : CharacterAttack {
                 _firePos.transform.position - _firePos.transform.right * 0.15f,
                 _firePos.transform.rotation);
             projectile.GetComponent<Projectile_Colt>().TheStart(
+                gameObject,
                 _playerStats._bulletVelocity,
                 _playerStats._damage
                 , _playerStats._skillRange
-                , true);
+                , true
+                , enemyTag
+                );
 
             shotCount++;
             yield return new WaitForSeconds(0.02f);
         }
 
-        PlayerController.instance.isActivatingSkill = false;
+        if (!_isCharacterAI)
+            PlayerController.instance.isActivatingSkill = false;
+        else
+            _AIController.isActivatingSkill = false;
         _animator.SetBool("Firing", false);
-        _upperSpine.transform.rotation = upperSpineOrginRot;
+
+        //_upperSpine.transform.rotation = upperSpineOrginRot;
+        rotate = false;
 
     }
 

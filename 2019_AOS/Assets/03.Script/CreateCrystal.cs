@@ -10,6 +10,9 @@ public class CreateCrystal : MonoBehaviour
 
     Vector3[] _createDir = new Vector3[8];
     // Start is called before the first frame update
+    private void Awake()
+    {
+    }
     void Start()
     {
         _timeChecker = 0f;
@@ -21,7 +24,7 @@ public class CreateCrystal : MonoBehaviour
         _createDir[5] = new Vector3(-1, 5, 1);
         _createDir[6] = new Vector3(-1, 5, 0);
         _createDir[7] = new Vector3(-1, 5, 1);
-
+                
     }
 
     // Update is called once per frame

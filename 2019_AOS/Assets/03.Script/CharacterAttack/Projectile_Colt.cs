@@ -16,10 +16,11 @@ public class Projectile_Colt : Projectile
 	// Use this for initialization
 
     // not unity default Start method
-    public void TheStart(float velocity, int damage, float range,bool isSkill)
+    public void TheStart(GameObject caller, float velocity, int damage, float range,bool isSkill, string enemyTag)
     {
+        _caller = caller;
         _velocity = velocity; _damage = damage; _range = range;
-        _isSkill = isSkill;
+        _isSkill = isSkill; _enemyTag = enemyTag;
 
         _startPos = transform.position;
         Vector3 dir = transform.forward.normalized * range;
@@ -28,6 +29,7 @@ public class Projectile_Colt : Projectile
         _journeyLength = (_endPos - _startPos).magnitude;
         _startTime = Time.time;
         _hit = false;
+        
     }
 
     // Update is called once per frame
@@ -83,17 +85,19 @@ public class Projectile_Colt : Projectile
                 }
 
             }
-            else if (other.CompareTag("Competition"))
+            else if (other.CompareTag(_enemyTag))
             {
-                if (_isSkill)
-                    ;
-                else
-                {
-                    PlayerController.instance._playerStats.HitCompetition(other.gameObject);
-                }
+                _caller.GetComponent<PlayerStats>().HitCompetition(other.gameObject);
+                other.GetComponent<PlayerStats>().HitByProjectile(_damage);
+                StartCoroutine(DestroySelf(1.0f));
+            }else if(_caller.gameObject.tag.CompareTo("Competition")==0 && 
+                other.CompareTag("Player"))
+            {
+                _caller.GetComponent<PlayerStats>().HitCompetition(other.gameObject);
+                other.GetComponent<PlayerStats>().HitByProjectile(_damage);
                 StartCoroutine(DestroySelf(1.0f));
             }
-            
+            //Debug.Log(_caller.gameObject.tag + " - " + other.CompareTag("Player"));
         }
     }
 

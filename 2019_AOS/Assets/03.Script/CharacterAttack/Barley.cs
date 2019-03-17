@@ -13,49 +13,56 @@ public class Barley : CharacterAttack {
     public float _indicatorSensitivity = 1f;
     Vector3 _landingPosition;
 
-    
+    float _lastTimeFire;
+
     // Use this for initialization
     void Start () {
         base.Start();
-        _shotIndicator = GetComponent<LineRenderer>();
-        _shotIndicator.positionCount = 10;
+        if (!_isCharacterAI)
+        {
+            _shotIndicator = GetComponent<LineRenderer>();
+            _shotIndicator.positionCount = 10;
+        }
         _attackCircle.SetActive(false);
         _skillCircle.SetActive(false);
         _landingPosition = Vector3.zero;
+
+        _lastTimeFire = Time.time;
+
     }
 
     // Update is called once per frame
     void Update () {
-        _fireDir = PlayerController.instance._attackStickDir;
+        if (!_isCharacterAI)
+            _fireDir = PlayerController.instance._attackStickDir;
+        else
+            _fireDir = _AIController._attackStickDir;
 
     }
 
     override public void StartDrawIndicator(bool isSkill)
     {
+        if (_isCharacterAI) return;
+
         if (_shotIndicator.enabled == false)
         {
             if (isSkill)
             {
-             //   _shotIndicator.enabled = true;
                 _circleIndicator = _skillCircle;
-             //   _lineRenderingRoutine = StartCoroutine(DrawAttackIndicator(true));
             }
             else
             {
-                //_shotIndicator.enabled = true;
                 _circleIndicator = _attackCircle;
-               // _lineRenderingRoutine = StartCoroutine(DrawAttackIndicator(false));
             }
             _shotIndicator.enabled = true;
             _lineRenderingRoutine = StartCoroutine(DrawAttackIndicator(isSkill));
-
         }
-
-
     }
 
     override public void StopDrawIndicator()
     {
+        if (_isCharacterAI) return;
+
         if (_lineRenderingRoutine != null)
             StopCoroutine(_lineRenderingRoutine);
 
@@ -68,11 +75,30 @@ public class Barley : CharacterAttack {
     {
         if (!_playerStats.onFire()) return;
 
+        if (Time.time - _lastTimeFire < 0.5f) return;
+        _lastTimeFire = Time.time;
 
+        _audioSource.clip = _fireSound;
+
+        string enemyTag;
+        Vector3 targetPosition = Vector3.zero;
         Vector3 fireDir = new Vector3(_fireDir.x, 0, _fireDir.y);
 
         _upperBodyDir = fireDir;
         rotate = true;
+
+        if (!_isCharacterAI)
+        {
+            enemyTag = "Competition";
+            targetPosition = _circleIndicator.transform.position;
+        }
+        else
+        {
+            enemyTag = GetComponent<AIController>()._enemyTag;
+            targetPosition = GetComponent<AIController>()._enemy.transform.position;
+        }
+
+        _audioSource.Play();
 
         GameObject muzzle = Instantiate(_muzzleEffect,
             _firePos.transform.position,
@@ -83,9 +109,12 @@ public class Barley : CharacterAttack {
             _firePos.transform.position,
             _firePos.transform.rotation);
         projectile.GetComponent<Projectile_Barley>().TheStart(
+            gameObject,
             _playerStats._damage,
             false,
-            _circleIndicator.transform.position);
+            targetPosition,
+            enemyTag
+            );
 
         rotate = false;
 
@@ -97,13 +126,31 @@ public class Barley : CharacterAttack {
 
     IEnumerator ActivateSkill()
     {
-
         int shotCount = 0;
-        PlayerController.instance.isActivatingSkill = true;
+        string enemyTag;
+
+        _audioSource.clip = _fireSound;
+
 
         Vector3 fireDir = new Vector3(_fireDir.x, 0, _fireDir.y);
         Vector3[] landingPositions = new Vector3[5];
-        landingPositions[0] = _circleIndicator.transform.position;
+        Vector3 targetPosition = Vector3.zero;
+
+        if (!_isCharacterAI)
+        {
+            PlayerController.instance.isActivatingSkill = true;
+            enemyTag = "Competition";
+            targetPosition = _circleIndicator.transform.position;
+        }
+        else
+        {
+            _AIController.isActivatingSkill = true;
+            enemyTag = GetComponent<AIController>()._enemyTag;
+            targetPosition = GetComponent<AIController>()._enemy.transform.position;
+        }
+
+
+        landingPositions[0] = targetPosition;
         landingPositions[1] = landingPositions[0] +
                     new Vector3(1, 0, 1);
         landingPositions[2] = landingPositions[0] +
@@ -116,29 +163,34 @@ public class Barley : CharacterAttack {
         _upperBodyDir = fireDir;
         rotate = true;
 
-
         while (shotCount < 5)
         {
+            _audioSource.Play();
+
             GameObject muzzle = Instantiate(_muzzleEffect,
             _firePos.transform.position,
             _firePos.transform.rotation);
             StartCoroutine(DestroyMuzzle(muzzle, 0.4f));
 
-
-
             GameObject projectile = GameObject.Instantiate(_projectile,
                 _firePos.transform.position,
                 _firePos.transform.rotation);
             projectile.GetComponent<Projectile_Barley>().TheStart(
+                gameObject,
                 _playerStats._damage,
                 false,
-                landingPositions[shotCount]);
+                landingPositions[shotCount],
+                enemyTag
+                );
             //Debug.Log(projectile.name + "  :  " + landingPositions[shotCount]);
             shotCount++;
             yield return new WaitForSeconds(0.2f);
         }
 
-        PlayerController.instance.isActivatingSkill = false;
+        if (!_isCharacterAI)
+            PlayerController.instance.isActivatingSkill = false;
+        else
+            _AIController.isActivatingSkill = false;
 
         rotate = false;
 
@@ -188,9 +240,9 @@ public class Barley : CharacterAttack {
         Vector3[] linePoisitions = new Vector3[_shotIndicator.positionCount];
         float limitRange;
         if (isSkill)
-            limitRange = PlayerController.instance._playerStats._skillRange;
+            limitRange = GetComponent<PlayerStats>()._skillRange;
         else
-            limitRange = PlayerController.instance._playerStats._bulletRange;
+            limitRange = GetComponent<PlayerStats>()._bulletRange;
 
         _shotIndicator.material = PlayerController.instance._attackIncatorMat;
         _circleIndicator.transform.position = transform.position;

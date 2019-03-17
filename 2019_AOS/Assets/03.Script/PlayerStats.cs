@@ -9,9 +9,22 @@ public class PlayerStats : MonoBehaviour {
 
     Vector3 _offset;
     Vector3 _rot;
+    public bool _isCharacterInGrass;
+    public GameObject _ExplosionRedPrefab;
+    public GameObject _ExplosionBluePrefab;
+    public Vector3 _spawnPosition;
+    public GameObject _crystal;
+    public AudioClip _dyingSound;
+    protected AudioSource _audioSource;
+
+    float _lastHitTime;
+    Coroutine _healthReproductionRoutine;
+    Coroutine _reloadRoutine;
+
+    public GameObject _shieldSphere;
+    bool _invincible;
 
     public CharacterInfo _characterInfo;
-
     #region Character Information
     //public FightType _fightType { get; private set;}
     public CharacterAttack _attackScript { get; private set; }
@@ -31,12 +44,12 @@ public class PlayerStats : MonoBehaviour {
     #region OnGame Information
     public string _name;
 
-    int _score;
+    public int _score { get; private set; }
     int _currentAmmo;
     bool _reload;
     float _currentReloadAmount;
     public bool _skillFireReady { get; private set; }
-    int _skillEnergy;
+    public int _skillEnergy { get; private set; }
     #endregion
 
     #region PlayerInfo Canvas
@@ -54,12 +67,15 @@ public class PlayerStats : MonoBehaviour {
     public Sprite _skillImg_Before;
     public Sprite _skillImg_After;
     #endregion
- 
+
 
     void Start () {
         _offset = new Vector3(0, 3.5f, 0.6f);
         _rot = new Vector3(68, 0, 0);
         _score = 0;
+        _isCharacterInGrass = false;
+        _invincible = false;
+        _audioSource = GetComponent<AudioSource>();
 
         #region CharacterInformation Setting      
         _attackScript = GetComponent<CharacterAttack>();
@@ -76,9 +92,15 @@ public class PlayerStats : MonoBehaviour {
         _skillRange = _characterInfo._skillRange;
         _skillDamage = _characterInfo._skillDamage;
 
-       #endregion
+        #endregion
 
         #region PlayerInfo Canvas Setting
+        if (gameObject.CompareTag("Player"))
+            _playerInfoCanvas = Resources.Load<GameObject>("UI/PlayerUI");
+        else if(gameObject.CompareTag("Company"))
+            _playerInfoCanvas = Resources.Load<GameObject>("UI/CompanyUI");
+        else if(gameObject.CompareTag("Competition"))
+            _playerInfoCanvas = Resources.Load<GameObject>("UI/EnemyUI");
         _playerInfoCanvas = Instantiate(_playerInfoCanvas);
         _playerInfoCanvas.GetComponent<RectTransform>().position =
     transform.position + _offset;
@@ -98,18 +120,47 @@ public class PlayerStats : MonoBehaviour {
         _currentReloadAmount = 1f;
         _skillEnergy = 0;
         _skillFireReady = false;
+
+        _lastHitTime = 0f;
     }
 
     // Update is called once per frame
     void Update () {
         _playerInfoCanvas.GetComponent<RectTransform>().position =
     transform.position + _offset;
+
     }
 
-    private void OnTriggerEnter(Collider other)
+    IEnumerator HealthReproduct()
     {
-        //Debug.Log(other.name);
+        yield return new WaitForSeconds(3f);
+        while(_health < _characterInfo._health)
+        {
+            _health += 200;
+            if (_health >= _characterInfo._health)
+                _health = _characterInfo._health;
+            _healthBar.GetComponent<Image>().fillAmount = (float)_health / _characterInfo._health;            
+            _healthTxt.GetComponent<Text>().text =
+                (int.Parse(_healthTxt.GetComponent<Text>().text) + 200).ToString();
+            
+            yield return new WaitForSeconds(1f);
+        }
+
+        _healthReproductionRoutine = null;
     }
+
+    private void FixedUpdate()
+    {
+        _isCharacterInGrass = false;
+    }
+
+    private void OnTriggerStay(Collider other)
+    {
+        if (other.CompareTag("Grass"))
+        {
+            _isCharacterInGrass = true;
+        }
+    }   
 
     public bool onFire()
     {
@@ -124,16 +175,20 @@ public class PlayerStats : MonoBehaviour {
             _reloadBar.GetComponent<Image>().fillAmount = _currentReloadAmount;
         }
         _reload = true;
-        StopAllCoroutines();
-        StartCoroutine(Reload());
+        //StopAllCoroutines();
+        if (_reloadRoutine != null)
+            StopCoroutine(_reloadRoutine);
+        _reloadRoutine = StartCoroutine(Reload());
 
         return true;
     }
-
+    
     IEnumerator Reload()
     {
         float startTime = Time.time;
-        Image reloadBarImage = _reloadBar.GetComponent<Image>();
+        Image reloadBarImage = null;
+        if (gameObject.CompareTag("Player"))
+            reloadBarImage = _reloadBar.GetComponent<Image>();
         float _reloadamount = _currentReloadAmount;
         while (_currentAmmo < _ammo)
         {
@@ -145,7 +200,7 @@ public class PlayerStats : MonoBehaviour {
             int i = 0; 
             while(i <= _ammo)
             {
-                if(reloadBarImage.fillAmount >= (float)(_ammo-i) / _ammo)
+                if(_currentReloadAmount >= (float)(_ammo-i) / _ammo)
                 {
                     _currentAmmo = _ammo - i;
                     if(gameObject.CompareTag("Player"))
@@ -160,20 +215,29 @@ public class PlayerStats : MonoBehaviour {
 
     public void HitCompetition(GameObject gameObject)
     {
-        _skillEnergy += _damage;
-        if(_skillEnergy >= _skillEnergyLimit && this.gameObject.CompareTag("Player"))
-        {
-            SkillCanvas.instance._gage.GetComponent<Image>().enabled = false ;
-            SkillCanvas.instance._outterCircle.GetComponent<Image>().sprite =
-                _skillBG_After;
-            SkillCanvas.instance._innerCircle.GetComponent<Image>().sprite =
-                _skillImg_After;
 
-            SkillCanvas.instance._innerCircle.GetComponent<Image>().raycastTarget = true;
+        _skillEnergy += _damage;
+        if(_skillEnergy >= _skillEnergyLimit)
+        {
+            if (this.gameObject.CompareTag("Player"))
+            {
+                SkillCanvas.instance._gage.GetComponent<Image>().enabled = false;
+                SkillCanvas.instance._outterCircle.GetComponent<Image>().sprite =
+                    _skillBG_After;
+                SkillCanvas.instance._innerCircle.GetComponent<Image>().sprite =
+                    _skillImg_After;
+                SkillCanvas.instance._innerCircle.GetComponent<Image>().raycastTarget = true;
+            }
             _skillFireReady = true;
         }
-        SkillCanvas.instance._gage.GetComponent<Image>().fillAmount = 
-            (float)_skillEnergy / _skillEnergyLimit;
+        if (this.gameObject.CompareTag("Player"))
+        {
+            SkillCanvas.instance._gage.GetComponent<Image>().fillAmount =
+                (float)_skillEnergy / _skillEnergyLimit;
+        }
+
+        _lastHitTime = Time.time;
+
     }
 
     public void InitializeSkillGage()
@@ -196,19 +260,96 @@ public class PlayerStats : MonoBehaviour {
     {
         _score++;
         if (!gameObject.CompareTag("Competition")) {
-            InGameMainUI.instance._ScoreBar_Ourside._scoreText.text = _score.ToString();
-            InGameMainUI.instance._ScoreBar_Ourside._scoreFilled[_score - 1].enabled = true;
-
             GameManagerScript.instance.IncreaseOurScore();
-            _scoreTxt.GetComponent<Text>().text = _score.ToString();
         }
-        else
-        {
-            InGameMainUI.instance._ScoreBar_Enemy._scoreText.text = _score.ToString();
-            InGameMainUI.instance._ScoreBar_Enemy._scoreFilled[_score - 1].enabled = true;
-
+        else {
             GameManagerScript.instance.IncreaseEnemyScore();
-            _scoreTxt.GetComponent<Text>().text = _score.ToString();
         }
+        _scoreTxt.GetComponent<Text>().text = _score.ToString();
+
+    }
+
+    public void HitByProjectile(int damage)
+    {
+        if (_invincible) return;
+
+        if (_healthReproductionRoutine != null)
+        {
+            StopCoroutine(_healthReproductionRoutine);
+        }
+
+        _health -= damage;
+        _healthBar.GetComponent<Image>().fillAmount = (float)_health / _characterInfo._health;
+        _healthTxt.GetComponent<Text>().text = (_health).ToString();
+
+        if(_health <= 0)
+        {
+            _audioSource.clip = _dyingSound;
+            _audioSource.Play();
+
+            Vector3[] _createDir = new Vector3[4];
+            _createDir[0] = new Vector3(0, 5, 1);
+            _createDir[1] = new Vector3(1, 5, 0);
+            _createDir[2] = new Vector3(0, 5, -1);
+            _createDir[3] = new Vector3(-1, 5, 0);
+
+            for(int i=0; i<_score; i++)
+            {
+                GameObject crystal = Instantiate(
+                    _crystal, transform.position + new Vector3(0,0.5f,0), 
+                    Quaternion.Euler(0, 0, 0)
+                    );
+                crystal.GetComponent<Rigidbody>().AddForce(_createDir[i%4], ForceMode.VelocityChange);
+            }
+
+            if (gameObject.CompareTag("Player") || gameObject.CompareTag("Company"))
+            {
+                GameObject particle = Instantiate(_ExplosionRedPrefab, transform.position, transform.rotation);
+                particle.GetComponent<ParticleSystem>().Play();
+            }else if (gameObject.CompareTag("Competition"))
+            {
+                GameObject particle = Instantiate(_ExplosionBluePrefab, transform.position, transform.rotation);
+                particle.GetComponent<ParticleSystem>().Play();
+            }
+            _playerInfoCanvas.SetActive(false);
+            GameManagerScript.instance.Respawn(this.gameObject);
+
+            _score = 0;
+            _scoreTxt.GetComponent<Text>().text = _score.ToString();
+
+            return;
+        }
+
+        _healthReproductionRoutine = StartCoroutine(HealthReproduct());
+
+    }
+
+    private void OnEnable()
+    {
+        if (_healthBar == null) return;
+        _health = _characterInfo._health;
+        _healthBar.GetComponent<Image>().fillAmount = 1;
+        _healthTxt.GetComponent<Text>().text = _health.ToString();
+
+        _reload = false;
+        _currentAmmo = _ammo;
+        _currentReloadAmount = 1f;
+
+        if(gameObject.CompareTag("Player"))
+            _ammoBar.GetComponent<Image>().fillAmount = _currentReloadAmount;
+
+        _playerInfoCanvas.SetActive(true);
+
+        _invincible = true;
+        _shieldSphere.SetActive(true);
+        StartCoroutine(RemoveShield());
+    }
+
+    IEnumerator RemoveShield()
+    {
+        yield return new WaitForSeconds(3.0f);
+
+        _invincible = false;
+        _shieldSphere.SetActive(false);
     }
 }

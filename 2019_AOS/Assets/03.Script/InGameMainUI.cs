@@ -22,6 +22,7 @@ public class InGameMainUI : MonoBehaviour {
     public GameObject _SkillSitck_Panel;
     public ScoreBar _ScoreBar_Ourside;
     public ScoreBar _ScoreBar_Enemy;
+    public GameObject _Count;
 
     public JoyStickController AttackStick { get; private set; }
     public JoyStickController MovementStick { get; private set; }
@@ -36,6 +37,8 @@ public class InGameMainUI : MonoBehaviour {
 
         _resolutionWidthRatio = (float)Screen.currentResolution.width / 1280;
         _resolutionHeightRatio = (float)Screen.currentResolution.width / 800;
+
+        _Count.GetComponent<Text>().enabled = false;
             //Debug.Log(Screen.currentResolution.width + " - " + ratio);
         //_MovementStick_Panel.GetComponent<RectTransform>().localScale *= ratio;
     }

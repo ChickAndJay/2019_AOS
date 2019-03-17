@@ -63,10 +63,10 @@ public class PlayerController : MonoBehaviour {
     public bool isActivatingSkill;
     #endregion
 
+    bool _dead;
 
     // Use this for initialization
     void Start () {
-
 
         _playerAnimator = GetComponentInChildren<Animator>();
         _controller = GetComponent<CharacterController>();
@@ -88,15 +88,16 @@ public class PlayerController : MonoBehaviour {
         _shotIndicator = GetComponent<LineRenderer>();
         _shotIndicator.enabled = false;
         isActivatingSkill = false;
-
-
         _attackStickDir = Vector3.zero;
 
         Input.simulateMouseWithTouches = true;
+
+        _dead = false;
     }
 
 	// Update is called once per frame
 	void Update () {
+        //if (_dead) return;
 
         foreach (Touch touch in Input.touches)
         {           

@@ -17,6 +17,9 @@ public abstract class Projectile : MonoBehaviour {
 
     public GameObject _bulletMeshObj;
 
+    protected GameObject _caller;
+    protected string _enemyTag;
+
     protected IEnumerator DistortCollider(Collider other)
     {
         float startTime = Time.time;

@@ -7,10 +7,18 @@ public class Crystal : MonoBehaviour
     public float _rotateSpeed;
     Quaternion _targetRotation;
 
+    public AudioClip _createSound;
+    public AudioClip _absortionSound;
+    AudioSource _audioSource;
     // Start is called before the first frame update
     void Start()
     {
         _targetRotation = transform.rotation;
+        GetComponent<SphereCollider>().enabled = false;
+
+        _audioSource = GetComponent<AudioSource>();
+        _audioSource.clip = _createSound;
+        _audioSource.Play();
     }
 
     // Update is called once per frame
@@ -20,6 +28,8 @@ public class Crystal : MonoBehaviour
         {
             GetComponent<Rigidbody>().useGravity = false;
             GetComponent<Rigidbody>().velocity = Vector3.zero;
+            GetComponent<SphereCollider>().enabled = true;
+
         }
         _targetRotation *= Quaternion.AngleAxis(10, Vector3.up);
         transform.rotation =
@@ -31,21 +41,24 @@ public class Crystal : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         if(other.CompareTag("Player") ||              
-            other.CompareTag("Company")){
+            other.CompareTag("Company") || 
+            other.CompareTag("Competition"))
+        {
             StartCoroutine(AbsorptedToCollider(other));
             other.GetComponent<PlayerStats>().IncreaseScore();
-        }else if (other.CompareTag("Competition"))
-        {
-            AbsorptedToCollider(other);
         }
     }
 
     IEnumerator AbsorptedToCollider(Collider other)
     {
+
         float time = 0;
         float absortionTime = 0.7f;
         Vector3 startPos = transform.position;
         Vector3 originalScale = transform.localScale;
+
+        _audioSource.clip = _absortionSound;
+        _audioSource.Play();
 
         while (time < absortionTime)
         {

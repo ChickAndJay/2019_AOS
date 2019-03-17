@@ -33,16 +33,20 @@ public class Shelly : CharacterAttack
 
         _shotIndicator.SetActive(false);
 
-        _firePosParent = PlayerController.instance._firePosParent;
+        if (!_isCharacterAI)
+            _firePosParent = PlayerController.instance._firePosParent;
+        else
+            _firePosParent =  GetComponent<AIController>()._firePosParent;
 
     }
 
     // Update is called once per frame
     void Update () {
-        _fireDir = PlayerController.instance._attackStickDir;
-       // Debug.Log(_fireDir + " _ " + PlayerController.instance.name);
-       // _shotIndicator.transform.position = transform.position;
-	}
+        if (!_isCharacterAI)
+            _fireDir = PlayerController.instance._attackStickDir;
+        else
+            _fireDir = _AIController._attackStickDir;
+    }
 
     public override void FireBaseAttack()
     {
@@ -59,6 +63,8 @@ public class Shelly : CharacterAttack
 
     public override void StartDrawIndicator(bool isSkill)
     {
+        if (_isCharacterAI) return;
+
         if (!_shotIndicator.activeSelf)
         {
             _shotIndicator.SetActive(true);
@@ -68,7 +74,9 @@ public class Shelly : CharacterAttack
 
     public override void StopDrawIndicator()
     {
-        if(_drawIndicatorRoutine != null)
+        if (_isCharacterAI) return;
+
+        if (_drawIndicatorRoutine != null)
         {
             StopCoroutine(_drawIndicatorRoutine);
             _shotIndicator.SetActive(false);
@@ -81,7 +89,19 @@ public class Shelly : CharacterAttack
 
     IEnumerator ActivateBaseAttack(bool isSkill)
     {
-        PlayerController.instance.isActivatingSkill = true;
+        _audioSource.clip = _fireSound;
+
+        string enemyTag;
+        if (!_isCharacterAI)
+        {
+            PlayerController.instance.isActivatingSkill = true;
+            enemyTag = "Competition";
+        }
+        else
+        {
+            _AIController.isActivatingSkill = true;
+            enemyTag = GetComponent<AIController>()._enemyTag;
+        }
 
         Vector3 fireDir = new Vector3(_fireDir.x, 0, _fireDir.y);
         GameObject muzzle;
@@ -105,6 +125,8 @@ public class Shelly : CharacterAttack
             viewAngle = 35f;
             stepCount = 3;
         }
+
+        _audioSource.Play();
 
         yield return new WaitForSeconds(0.1f);
         for (int i = 0; i < stepCount ; i++)
@@ -138,17 +160,23 @@ public class Shelly : CharacterAttack
 
 
                 projectile.GetComponent<Projectile_Colt>().TheStart(
+                    gameObject,
                     _playerStats._bulletVelocity,
                     _playerStats._damage
                     , _playerStats._bulletRange
-                    , isSkill);
+                    , isSkill
+                    , enemyTag
+                    );
 
                 
             }
 
         }
 
-        PlayerController.instance.isActivatingSkill = false;
+        if (!_isCharacterAI)
+            PlayerController.instance.isActivatingSkill = false;
+        else
+            _AIController.isActivatingSkill = false;
         rotate = false;
 
     }

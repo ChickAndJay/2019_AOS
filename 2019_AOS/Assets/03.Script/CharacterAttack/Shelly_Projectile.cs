@@ -9,21 +9,19 @@ public class Shelly_Projectile : Projectile_Colt
         base.Update();
 	}
 
-    new public void TheStart(float velocity, int damage, float range, bool isSkill)
-    {
-        _velocity = velocity; _damage = damage; _range = range;
-        _isSkill = isSkill;
+    //new public void TheStart(float velocity, int damage, float range, bool isSkill)
+    //{
+    //    _velocity = velocity; _damage = damage; _range = range;
+    //    _isSkill = isSkill;
 
-        _startPos = transform.position;
-        Vector3 dir = transform.forward.normalized * range;
-        _endPos = dir;
-        _endPos += _startPos;
-        _journeyLength = (_endPos - _startPos).magnitude;
-        _startTime = Time.time;
-        _hit = false;
-
-        Debug.Log("Asefasef");
-    }
+    //    _startPos = transform.position;
+    //    Vector3 dir = transform.forward.normalized * range;
+    //    _endPos = dir;
+    //    _endPos += _startPos;
+    //    _journeyLength = (_endPos - _startPos).magnitude;
+    //    _startTime = Time.time;
+    //    _hit = false;
+    //}
 
 
 }
