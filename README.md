@@ -15,3 +15,4 @@ Android AOS 장르의 게임
 + 제작과정 특이사항 : 
     - 원작에서는 멀티게임이지만, 이 프로젝트는 모작이기 때문에
       멀티 플레이 기능 대신에 AI 를 구현했음
+https://www.youtube.com/watch?v=mw9kP2K2_Jc&t=64s
